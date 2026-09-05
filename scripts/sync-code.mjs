@@ -1,0 +1,10 @@
+import fs from'node:fs';import path from'node:path';import{spawnSync}from'node:child_process';import{ROOT}from'../server/store.mjs';
+export const REPO='PF11223333/growth-study-platform';
+export function github(endpoint,method='GET',body){const p=spawnSync('gh',['api',endpoint,...method!=='GET'?['--method',method]:[],...body?['--input','-']:[]],{cwd:ROOT,windowsHide:true,encoding:'utf8',input:body?JSON.stringify(body):undefined,maxBuffer:20*1024*1024});if(p.status!==0)throw new Error(p.stderr||p.stdout);return p.stdout.trim()?JSON.parse(p.stdout):{};}
+export function syncCode(){
+ let ref;try{ref=github(`repos/${REPO}/git/ref/heads/main`);}catch(e){if(!/404|409|empty/i.test(e.message))throw e;github(`repos/${REPO}/contents/README.md`,'PUT',{message:'Initialize study platform',content:Buffer.from(fs.readFileSync(path.join(ROOT,'README.md'))).toString('base64'),branch:'main'});ref=github(`repos/${REPO}/git/ref/heads/main`);}
+ const commit=github(`repos/${REPO}/git/commits/${ref.object.sha}`);const current=github(`repos/${REPO}/git/trees/${commit.tree.sha}?recursive=1`);const files=spawnSync('git',['ls-files','-z'],{cwd:ROOT,encoding:'utf8',windowsHide:true}).stdout.split('\0').filter(Boolean);const entries=[];
+ for(const file of files){if(/^(?:data|dist|tmp|output|node_modules|\.playwright-cli)\//.test(file))throw new Error('源码发布目录不合法');const bytes=fs.readFileSync(path.join(ROOT,file));const content=bytes.toString('utf8');if(!Buffer.from(content).equals(bytes))throw new Error('源码同步仅允许 UTF-8 文本 '+file);entries.push({path:file,mode:'100644',type:'blob',content});}
+ const tree=github(`repos/${REPO}/git/trees`,'POST',{base_tree:commit.tree.sha,tree:entries});if(tree.sha===commit.tree.sha)return {changed:false,sha:ref.object.sha};const next=github(`repos/${REPO}/git/commits`,'POST',{message:'Update integrated learning platform',tree:tree.sha,parents:[ref.object.sha]});github(`repos/${REPO}/git/refs/heads/main`,'PATCH',{sha:next.sha,force:false});return {changed:true,sha:next.sha};
+}
+if(process.argv[1]?.endsWith('sync-code.mjs'))console.log(JSON.stringify(syncCode()));

@@ -1,0 +1,8 @@
+node_modules/
+data/
+dist/
+output/
+tmp/
+*.log
+publish-config.local.json
+.playwright-cli/
