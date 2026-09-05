@@ -7,7 +7,7 @@ on:
         required: true
         type: string
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -20,16 +20,23 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
+      - uses: actions/checkout@v4
       - name: Download validated site
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          gh release download "$RELEASE_TAG" --pattern site.zip --dir bundle
+          gh release download "$RELEASE_TAG" --pattern 'site.zip.part*' --dir bundle
+          cat bundle/site.zip.part* > bundle/site.zip
           unzip -q bundle/site.zip -d site
           test -f site/version.json
           test -f site/index.html
+      - name: Reassemble and verify original materials
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: python scripts/assemble-materials.py
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
