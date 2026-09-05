@@ -13,7 +13,11 @@ try{
  step('检查 GitHub 项目');try{await gh(`repos/${repo}`);}catch(e){if(!e.message.includes('404'))throw e;await run('gh',['repo','create',repo,'--public','--description','向内生长 · 学习资料与复盘平台']);}
  step('同步平台源码与部署流程');syncCode();
  step('上传完整原始资料');let release;try{release=await gh(`repos/${repo}/releases/tags/materials`);}catch(e){if(!e.message.includes('404'))throw e;release=await gh(`repos/${repo}/releases`,'POST',{tag_name:'materials',name:'学习原资料',body:'原文件按内容 SHA-256 命名，与站内逐页预览关联。',draft:false,prerelease:false});}
- for(const source of db.sources){if(source.missing)continue;const match=release.assets?.find(a=>a.name===source.filename);if(match&&match.size===source.size)continue;step(`上传原资料：${source.title}`);await run('gh',['release','upload','materials',path.join(DATA,'originals',source.filename),'--repo',repo,'--clobber']);}
+ const pending=[...db.sources];let completed=0;const inflightFile=path.join(DATA,'inflight-upload.json');const inflight=fs.existsSync(inflightFile)?JSON.parse(fs.readFileSync(inflightFile,'utf8')):null;
+ const uploadWorker=async()=>{while(pending.length){const source=pending.shift();if(source.missing)continue;
+ if(inflight?.filename===source.filename){step('继续等待已在传输的原文件，其余附件并行上传');for(;;){let alive=false;try{process.kill(inflight.pid,0);alive=true;}catch{}if(!alive)break;await wait(10000);}}
+ const latest=await gh(`repos/${repo}/releases/tags/materials`);const match=latest.assets?.find(a=>a.name===source.filename&&a.state==='uploaded'&&a.size===source.size);if(!match){step('上传原资料：'+source.title+'（已完成 '+completed+'/'+db.sources.length+'）');await run('gh',['release','upload','materials',path.join(DATA,'originals',source.filename),'--repo',repo,'--clobber']);}completed++;console.log('原资料已就绪 '+completed+'/'+db.sources.length);}};
+ await Promise.all(Array.from({length:4},()=>uploadWorker()));
  step('打包已验证的公开站点');const tag='site-v'+manifestVersion+'-'+Date.now();const bundle=path.join(DATA,'site.zip');await run(process.env.GROWTH_PYTHON||'python',['-I','-c','import zipfile,pathlib,sys; root=pathlib.Path(sys.argv[1]); z=zipfile.ZipFile(sys.argv[2],"w",zipfile.ZIP_STORED); [z.write(p,p.relative_to(root).as_posix()) for p in root.rglob("*") if p.is_file()]; z.close()',path.join(ROOT,'dist'),bundle]);
  await gh(`repos/${repo}/releases`,'POST',{tag_name:tag,name:'Reading edition v'+manifestVersion,body:'Validated static website bundle.',prerelease:true});
  step('上传站点并触发 Pages 部署');await run('gh',['release','upload',tag,bundle,'--repo',repo]);

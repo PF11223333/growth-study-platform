@@ -10,7 +10,7 @@ async function handler(req,res){try{
  const url=new URL(req.url,`http://127.0.0.1:${port}`),p=decodeURIComponent(url.pathname);const origin=req.headers.origin;const allowed=new Set([`http://127.0.0.1:${port}`,`http://localhost:${port}`,'http://127.0.0.1:5173']);
  if(origin&&!allowed.has(origin))return reply(res,{error:'来源不允许'},403);
  if(!['127.0.0.1','localhost'].includes((req.headers.host||'').split(':')[0]))return reply(res,{error:'仅支持本机访问'},403);
- if(req.method!=='GET'&&req.headers['x-growth-token']!==token)return reply(res,{error:'编辑凭证失效，请刷新页面'},403);
+ if(!['GET','HEAD'].includes(req.method)&&req.headers['x-growth-token']!==token)return reply(res,{error:'编辑凭证失效，请刷新页面'},403);
  if(p==='/api/health')return reply(res,{ok:true,mode:'local'});
  if(p==='/api/bootstrap'&&req.method==='GET')return reply(res,{...catalog(read()),mode:'local',token});
  if(p==='/api/search'&&req.method==='GET')return reply(res,read().records.filter(r=>!r.archived).map(r=>({id:r.id,text:[r.title,r.body,r.topic,...r.tags||[]].join(' ').toLowerCase()})));
