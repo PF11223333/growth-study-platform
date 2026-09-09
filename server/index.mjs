@@ -13,7 +13,7 @@ async function handler(req,res){try{
  if(!['GET','HEAD'].includes(req.method)&&req.headers['x-growth-token']!==token)return reply(res,{error:'编辑凭证失效，请刷新页面'},403);
  if(p==='/api/health')return reply(res,{ok:true,mode:'local'});
  if(p==='/api/bootstrap'&&req.method==='GET')return reply(res,{...catalog(read()),mode:'local',token});
- if(p==='/api/search'&&req.method==='GET')return reply(res,read().records.filter(r=>!r.archived).map(r=>({id:r.id,text:[r.title,r.body,r.topic,...r.tags||[]].join(' ').toLowerCase()})));
+ if(p==='/api/search'&&req.method==='GET')return reply(res,read().records.filter(r=>!r.archived).map(r=>({id:r.id,text:[r.title,r.body,r.topic,JSON.stringify(r.details?.pageOCR||[]),...r.tags||[]].join(' ').toLowerCase()})));
  if(p==='/api/growth'&&req.method==='GET')return reply(res,{growth:read().growth,version:read().version});
  if(p==='/api/status'&&req.method==='GET'){const db=read();const statusFile=path.join(DATA,'publish-status.json');return reply(res,{publication:fs.existsSync(statusFile)?JSON.parse(fs.readFileSync(statusFile,'utf8')):db.publication,conflicts:db.conflicts,backups:fs.existsSync(path.join(DATA,'backups'))?fs.readdirSync(path.join(DATA,'backups')).filter(f=>f.endsWith('.json')).sort().reverse().slice(0,30):[],migration:db.legacyEvidence?.counts});}
  if(p.startsWith('/api/records/')&&req.method==='GET'){const r=read().records.find(r=>r.id===p.split('/').pop());return reply(res,r||{error:'记录不存在'},r?200:404);}
