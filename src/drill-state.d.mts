@@ -1,0 +1,9 @@
+export type ProgressItem={attempts:number;wrongCount:number;streak:number;history:any[];isWrong?:boolean;origin?:string;nextReview?:string;mastered?:boolean;dismissed?:boolean;lastAt?:string;lastAnswer?:string;lastCorrect?:boolean;correctDays?:string[]};
+export type DrillProgress={revision:number;items:Record<string,ProgressItem>};
+export function normalizeAnswer(value:unknown):string;
+export function emptyProgress():DrillProgress;
+export function gradeQuestion(question:any,answer:string,rating?:string):boolean|null;
+export function applyEvent(progress:DrillProgress,event:any):DrillProgress;
+export function mergeProgress(base:DrillProgress,overlay:DrillProgress):DrillProgress;
+export function isPending(record:any,progress:DrillProgress):boolean;
+export function isWrongRecord(record:any,progress:DrillProgress):boolean;

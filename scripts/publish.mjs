@@ -22,7 +22,7 @@ try{
  step('同步平台源码与部署流程');syncCode();
  const originals=await release('materials','原始学习资料。分段用于可靠传输，完整文件经 SHA-256 核验后合并。');
  const materialParts=[];for(const s of db.sources){if(s.missing||originals.assets.some(a=>a.name===s.filename&&a.size===s.size&&a.state==='uploaded'))continue;materialParts.push(...split(path.join(DATA,'originals',s.filename)));}await transfer('materials',materialParts,'原资料上传');
- step('打包已验证的公开站点');const tag=`site-v${db.version}-${version.appHash.slice(0,12)}`,bundle=path.join(DATA,tag,'site.zip');fs.mkdirSync(path.dirname(bundle),{recursive:true});
+ step('打包已验证的公开站点');const tag=`site-v${db.version}-${version.appHash.slice(0,8)}-${version.catalogHash.slice(0,8)}`,bundle=path.join(DATA,tag,'site.zip');fs.mkdirSync(path.dirname(bundle),{recursive:true});
  if(!fs.existsSync(bundle))await run(process.env.GROWTH_PYTHON||'python',['-I','-c','import zipfile,pathlib,sys; root=pathlib.Path(sys.argv[1]); z=zipfile.ZipFile(sys.argv[2],"w",zipfile.ZIP_STORED); [z.write(p,p.relative_to(root).as_posix()) for p in sorted(root.rglob("*")) if p.is_file()]; z.close()',path.join(ROOT,'dist'),bundle]);
  await release(tag,'Validated static website bundle.');await transfer(tag,split(bundle,tag),'站点上传');
  step('启动 GitHub Pages 部署与原文件校验');try{const pages=await gh(`repos/${repo}/pages`);if(pages.build_type!=='workflow')await gh(`repos/${repo}/pages`,'PUT',{build_type:'workflow'});}catch(e){if(!e.message.includes('404'))throw e;await gh(`repos/${repo}/pages`,'POST',{build_type:'workflow'});}

@@ -3,6 +3,7 @@ import path from 'node:path';
 import vm from 'node:vm';
 import {fileURLToPath} from 'node:url';
 import {ROOT,DATA,read,write,backup,hash,idFor,mergeImported,atomic,now,publicClean} from '../server/store.mjs';
+import {prepareDrills} from './prepare-drills.mjs';
 const parent=path.dirname(ROOT),police=path.join(parent,'公安专业复盘网站','data'),garden=path.join(parent,'个人复盘网站','data'),shenlun=path.join(parent,'申论素材库');
 const json=f=>JSON.parse(fs.readFileSync(f,'utf8'));
 const arr=v=>Array.isArray(v)?v:[];
@@ -46,6 +47,6 @@ export async function importLegacy(){
  for(const old of db.records)if(old.origin==='shenlun'&&old.kind==='quote'&&/^[GQ]\d+$/.test(old.legacyId||'')&&!old.edited)old.archived=true;
  const report=mergeImported(db,rows,sources);if(!db.growthImported){db.growth=publicClean(growth);db.growthImported=true;}db.reviewSettings=exam.reviewSettings||db.reviewSettings;
  db.legacyEvidence={police:{knowledgeCardArchives:exam.knowledgeCardArchives,reviewEvents:exam.reviewEvents,extractionQueue:publicClean(exam.extractionQueue),examProfile:exam.examProfile},counts:{knowledgeCards:arr(exam.knowledgeCards).length,captures:arr(exam.captures).length,growthReviews:arr(growth.reviews).length,uploads:arr(exam.uploads).length,shenlunDays:files.length}};
- db.imports.push({at:now(),...report});write(db);atomic(path.join(DATA,'migration-report.json'),{at:now(),...report,legacyCounts:db.legacyEvidence.counts,missing:sources.filter(s=>s.missing).map(s=>s.title)});return report;
+ const drillReport=prepareDrills(db);db.imports.push({at:now(),...report,drillReport});write(db);atomic(path.join(DATA,'migration-report.json'),{at:now(),...report,drillReport,legacyCounts:db.legacyEvidence.counts,missing:sources.filter(s=>s.missing).map(s=>s.title)});return {...report,drillReport};
 }
 if(process.argv[1]&&path.resolve(process.argv[1])===fileURLToPath(import.meta.url))console.log(JSON.stringify(await importLegacy()));

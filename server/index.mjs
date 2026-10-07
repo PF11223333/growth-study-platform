@@ -1,6 +1,7 @@
 import http from 'node:http';import fs from 'node:fs';import path from 'node:path';import crypto from 'node:crypto';import {spawn}from'node:child_process';
 import {ROOT,DATA,read,write,backup,atomic,hash,idFor,uid,now,dateCN,catalog,saveRecord,publicClean,reviewDate}from'./store.mjs';
 import {importLegacy}from'../scripts/import.mjs';import {previews}from'../scripts/previews.mjs';
+import {readDrill,saveDrillEvent} from './drill.mjs';
 const port=Number(process.env.PORT||4186),token=crypto.randomBytes(24).toString('hex');let busy=false,publishProcess=null;const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf','.woff2':'font/woff2'};
 const reply=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data));};
 async function body(req){const chunks=[];let n=0;for await(const b of req){n+=b.length;if(n>190*1024*1024){const e=new Error('文件超过 140 MB 上传限制');e.status=413;throw e;}chunks.push(b);}return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}');}
@@ -12,7 +13,8 @@ async function handler(req,res){try{
  if(!['127.0.0.1','localhost'].includes((req.headers.host||'').split(':')[0]))return reply(res,{error:'仅支持本机访问'},403);
  if(!['GET','HEAD'].includes(req.method)&&req.headers['x-growth-token']!==token)return reply(res,{error:'编辑凭证失效，请刷新页面'},403);
  if(p==='/api/health')return reply(res,{ok:true,mode:'local'});
- if(p==='/api/bootstrap'&&req.method==='GET')return reply(res,{...catalog(read()),mode:'local',token});
+ if(p==='/api/bootstrap'&&req.method==='GET')return reply(res,{...catalog(read()),drillProgress:readDrill(),mode:'local',token});
+ if(p==='/api/drill-progress'&&req.method==='GET')return reply(res,readDrill());
  if(p==='/api/search'&&req.method==='GET')return reply(res,read().records.filter(r=>!r.archived).map(r=>({id:r.id,text:[r.title,r.body,r.topic,JSON.stringify(r.details?.pageOCR||[]),...r.tags||[]].join(' ').toLowerCase()})));
  if(p==='/api/growth'&&req.method==='GET')return reply(res,{growth:read().growth,version:read().version});
  if(p==='/api/status'&&req.method==='GET'){const db=read();const statusFile=path.join(DATA,'publish-status.json');return reply(res,{publication:fs.existsSync(statusFile)?JSON.parse(fs.readFileSync(statusFile,'utf8')):db.publication,conflicts:db.conflicts,backups:fs.existsSync(path.join(DATA,'backups'))?fs.readdirSync(path.join(DATA,'backups')).filter(f=>f.endsWith('.json')).sort().reverse().slice(0,30):[],migration:db.legacyEvidence?.counts});}
@@ -23,7 +25,7 @@ async function handler(req,res){try{
  if(p.startsWith('/api/')&&req.method==='POST'){
   if(busy)return reply(res,{error:'另一项保存或导入正在进行，请稍后重试。'},409);const input=await body(req);if(busy)return reply(res,{error:'另一项任务正在进行'},409);busy=true;
   try{
-   let db=read();if(p==='/api/records'){const row=saveRecord(db,input.record,input.revision);write(db);return reply(res,row);}
+   let db=read();if(p==='/api/drill-progress')return reply(res,saveDrillEvent(db,input));if(p==='/api/records'){const row=saveRecord(db,input.record,input.revision);write(db);return reply(res,row);}
    if(p==='/api/review'){const r=db.records.find(r=>r.id===input.id);if(!r)throw new Error('卡片不存在');if(!['忘记','模糊','掌握'].includes(input.rating))throw new Error('复习评价无效');const row=saveRecord(db,{...r,...reviewDate(input.rating,r.reviewStage||0),activationStatus:'已激活',reviewHistory:[...(r.reviewHistory||[]),{at:now(),rating:input.rating}]},input.revision);write(db);return reply(res,row);}
    if(p==='/api/growth'){if(input.version!==db.version)return reply(res,{error:'计划已更新，请刷新后重试'},409);backup(db);db.growth={...db.growth,...input.growth};write(db);return reply(res,{version:db.version});}
    if(p==='/api/backup')return reply(res,{name:backup(db)});
