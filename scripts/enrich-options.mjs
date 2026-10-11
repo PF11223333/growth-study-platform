@@ -6,6 +6,10 @@ const procedure='https://www.nia.gov.cn/News/files/c1460628/1506344.pdf';
 const basis=(title,url,article,verification='官方条文已核对；选项结论为结合题干的学习推理')=>({title,url,article,verification});
 const c=(article)=>basis('《刑法》相关条文',criminal,article);
 const audited={
+ 'drill-20260917-admin-single-0-4':{
+  category:'把违禁品误当成普通的无关财物',keyCondition:'自制步枪不能仅因本次举报涉及烟花爆竹就留在现场不管。先识别违禁品或武器，再依法控制、鉴定和处理；教材原题问“不正确”，答案B。',memory:'枪不是普通无关物；危物专库放，检查要双警，住所另看证。',legalBasis:[basis('《公安机关办理行政案件程序规定》（2020修正）','https://jtgl.beijing.gov.cn/jgj/jgxx/flfg/gabgz/744068792/index.html','第五十二、五十三、八十二、一百九十一条','已核对原题所涉程序规则；不是整部规章与2026年新法兼容性的结论'),basis('《治安管理处罚法》（2025修订，2026年施行）','https://jtgl.beijing.gov.cn/jgj/jgxx/flfg/fl/744006073/index.html','第一百零三条','现行住所检查规则与旧题口径须分别学习')],
+  options:{A:'原题按当时《程序规定》第82条的紧急检查口径理解：群众举报正在住所自制爆竹，有立即危及安全的风险。但这不是“凡进住所出示警察证就够”。2026年施行的新治安法第103条另明确住所检查须出示检查证；本项不能直接当成现行法无条件正确结论。',B:'本项是教材原题要选的错误说法。普通合法的无关财物不应随意扣押，但自制步枪涉及武器、违禁品和公共安全，不能因举报的案由是爆竹就断言“不必扣押”。应依法控制、鉴定并按性质处理，涉嫌犯罪还须转入刑事程序。',C:'黑火药是易燃易爆危险物品，应按《程序规定》第191条的专门场所保管要求处理。扣押解决“先控制”，专门保管解决“控制后如何避免危险”，不能混为一个步骤。',D:'检查取证按《程序规定》第52、82条须有至少两名人民警察。实习生跟随学习不当然取得人民警察执法资格，不能简单把“一名民警＋一名实习生”凑成两名执法民警。'},tip:'本题教材参考答案B仅按原题历史口径练习；A涉及新旧规范与住所检查条件差异，现行单选题的适用性仍需复核。不要因背了B，就背成“住所检查永远不需要检查证”。'
+ },
  'drill-20260917-admin-single-0-1':{
   category:'把特别不予处罚误当成从轻或减轻',keyCondition:'种植罂粟三百余株，不满500株，成熟前自行铲除，三个条件同时满足第83条特别不予处罚规则。',memory:'不满五百、成熟之前、自己铲除，三件齐全不处罚。',legalBasis:[basis('《治安管理处罚法》（2025年修订）','https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2025/art_8a1c722747214869b28c0ad7a0f8bb7a.html','第八十三条')],
   options:{A:'从宽是一般处理概念；本题已有第83条特别不予处罚的明确条件，不能用宽泛概念替代。',B:'从轻仍要实施处罚，题设三个条件齐全，依法是不予处罚，故从轻不是正确处理。',C:'减轻也是对处罚幅度的调整；不能把特殊不予处罚条件误记成普通减轻情节。',D:'数量不足500，且成熟前自行铲除，直接适用特别不予处罚规则。'},tip:'“因为怕查处”不使“成熟前自行铲除”失效；不要自行增加法律没有要求的动机条件。'
@@ -51,6 +55,12 @@ export function enrichOptions(db){
  let changed=0;
  for(const r of db.records.filter(r=>r.studyQuestion&&!r.archived)){
   const q=r.details?.question;if(!q)continue;const before=JSON.stringify(q);
+  if(r.id==='drill-20260917-admin-single-0-4'){
+   q.options.C='小崔说：“对扣押的黑火药应当存放在符合危险物品存放条件的专门场所。”';
+   q.recognitionCorrections=[{field:'options.C',sourceId:r.sourceRefs[0].sourceId,page:8,verifiedAt:'2026-10-11',method:'人工核对原页，补齐机器识别漏行；机器原稿保留在aiContent'}];
+   q.answerScope='原题教材口径（2020年）';
+   q.currentLawNote='原题教材选B。A按旧规章的紧急检查口径解释；2026年新治安法第103条另明确住所检查须出示检查证，现行单选适用性需复核。此题按历史参考答案记录成绩，不据此宣称A在现行法下一律正确。';
+  }
   const specific=audited[r.id];
   if(specific){q.explanation={...q.explanation,...specific,options:undefined,status:undefined,tip:undefined,diagnosis:specific.keyCondition};q.optionExplanations=Object.fromEntries(Object.entries(specific.options).map(([letter,text])=>[letter,{text,status:specific.status||'已核对依据／题干推理',basis:q.explanation.legalBasis}]));q.attention=specific.tip;q.optionAuditStatus=specific.status||'已核对依据／题干推理';}
   else if(q.type!=='recall'){
@@ -67,7 +77,9 @@ export function enrichOptions(db){
    const card=db.records.find(x=>x.id===q.answerCardId);if(card){
     const marker='\n\n## 逐项选项解析';const base=(card.body||'').split(marker)[0];
     const body=base+marker+'\n\n'+Object.entries(q.optionExplanations||{}).map(([letter,value])=>`### ${letter} · ${String(q.referenceAnswer).includes(letter)?'教材答案项':'教材非答案项'}\n\n${value.text}\n\n核验状态：${value.status}`).join('\n\n')+(q.attention?'\n\n### 答后注意\n\n'+q.attention:'')+'\n\n### 核验出处\n\n'+(q.explanation?.legalBasis||[]).map(b=>`- [${b.title}${b.article?' · '+b.article:''}](${b.url})：${b.verification}`).join('\n');
-    if(card.body!==body){card.body=body;card.revision++;changed++;}
+    const tutorialMarker='\n\n## 教学讲解与资料教程',tutorial=(card.body||'').split(tutorialMarker)[1];
+    const fullBody=body+(tutorial!==undefined?tutorialMarker+tutorial:'');
+    if(card.body!==fullBody){card.body=fullBody;card.revision++;changed++;}
    }
   }
  }

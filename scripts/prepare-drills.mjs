@@ -2,6 +2,7 @@ import {read,write,backup,atomic,DATA,hash} from '../server/store.mjs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {enrichOptions} from './enrich-options.mjs';
+import {enrichTeaching} from './enrich-teaching.mjs';
 const lawUrl='https://www.samr.gov.cn/zw/zfxxgk/fdzdgknr/bgt/art/2025/art_8a1c722747214869b28c0ad7a0f8bb7a.html';
 const lawTitle='《治安管理处罚法》（2025年修订，2026年施行）';
 export function prepareDrills(db){
@@ -79,6 +80,7 @@ export function prepareDrills(db){
  }
  const generatedPrompts=new Set();for(const r of db.records)if(!r.archived&&r.studyQuestion?.origin==='generated'){const prompt=r.details.question.prompt;if(generatedPrompts.has(prompt)){r.archived=true;r.revision++;updated++;}else generatedPrompts.add(prompt);}
  updated+=enrichOptions(db).changed;
+ updated+=enrichTeaching(db).changed;
  const audit={added,updated,questions:db.records.filter(r=>r.studyQuestion&&!r.archived).length,historicalWrong:db.records.filter(r=>r.studyQuestion?.historicalWrong&&!r.archived).length,wrongCandidates:db.records.filter(r=>r.studyQuestion?.wrongCandidate&&!r.archived).length,generated:db.records.filter(r=>r.studyQuestion?.origin==='generated'&&!r.archived).length};return audit;
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){
