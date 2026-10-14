@@ -5,7 +5,7 @@ import {applyEvent,emptyProgress,mergeProgress,type DrillProgress} from './drill
 const key='growth-drill-progress-v2';
 function stored(){try{return JSON.parse(localStorage.getItem(key)||'null')||emptyProgress();}catch{return emptyProgress();}}
 function oldWrongs(){try{return JSON.parse(localStorage.getItem('growth-wrong-questions-v1')||'[]');}catch{return [];}}
-type Event={id:string;action:'attempt'|'confirm'|'dismiss';answer?:string;rating?:string;correct?:boolean|null;eventId?:string};
+type Event={id:string;action:'attempt'|'confirm'|'dismiss'|'reason';reason?:string;answer?:string;rating?:string;correct?:boolean|null;eventId?:string};
 const Context=createContext<{progress:DrillProgress;busy:boolean;error:string;save:(e:Event)=>Promise<boolean>}|null>(null);
 export function DrillProvider({catalog,children}:{catalog:Catalog;children:ReactNode}){
  const initial=mergeProgress(catalog.drillProgress||emptyProgress(),stored());

@@ -1,5 +1,7 @@
 import {read,write,backup,atomic,DATA,hash} from '../server/store.mjs';
 import path from 'node:path';
+import fs from 'node:fs';
+import {enrichMemoryEvidence} from './memory-evidence.mjs';
 import {fileURLToPath} from 'node:url';
 import {enrichOptions} from './enrich-options.mjs';
 import {enrichTeaching} from './enrich-teaching.mjs';
@@ -81,6 +83,7 @@ export function prepareDrills(db){
  const generatedPrompts=new Set();for(const r of db.records)if(!r.archived&&r.studyQuestion?.origin==='generated'){const prompt=r.details.question.prompt;if(generatedPrompts.has(prompt)){r.archived=true;r.revision++;updated++;}else generatedPrompts.add(prompt);}
  updated+=enrichOptions(db).changed;
  updated+=enrichTeaching(db).changed;
+ const lawFile=path.join(DATA,'law-excerpts.json');if(fs.existsSync(lawFile))updated+=enrichMemoryEvidence(db,JSON.parse(fs.readFileSync(lawFile,'utf8'))).changed;
  const audit={added,updated,questions:db.records.filter(r=>r.studyQuestion&&!r.archived).length,historicalWrong:db.records.filter(r=>r.studyQuestion?.historicalWrong&&!r.archived).length,wrongCandidates:db.records.filter(r=>r.studyQuestion?.wrongCandidate&&!r.archived).length,generated:db.records.filter(r=>r.studyQuestion?.origin==='generated'&&!r.archived).length};return audit;
 }
 if(process.argv[1]&&fileURLToPath(import.meta.url)===path.resolve(process.argv[1])){

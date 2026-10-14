@@ -1,4 +1,4 @@
-export type ProgressItem={attempts:number;wrongCount:number;streak:number;history:any[];isWrong?:boolean;origin?:string;nextReview?:string;mastered?:boolean;dismissed?:boolean;lastAt?:string;lastAnswer?:string;lastCorrect?:boolean;correctDays?:string[]};
+export type ProgressItem={attempts:number;wrongCount:number;streak:number;history:any[];isWrong?:boolean;origin?:string;errorReason?:string;reasonAt?:string;nextReview?:string;mastered?:boolean;dismissed?:boolean;lastAt?:string;lastAnswer?:string;lastCorrect?:boolean;correctDays?:string[]};
 export type DrillProgress={revision:number;items:Record<string,ProgressItem>};
 export function normalizeAnswer(value:unknown):string;
 export function emptyProgress():DrillProgress;
