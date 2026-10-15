@@ -1,5 +1,8 @@
-import {createContext,useContext,useEffect,useRef,useState,type ReactNode} from 'react';
+import {createContext,useContext,useEffect,useMemo,useRef,useState,type ReactNode} from 'react';
 import * as api from './api';
+import {projectGuidedDrill} from './guided-drill.mjs';
+import {emptyGuidedState,createTransferBundle} from './guided-state.mjs';
+import {readGuidedLocal,mergeGuidedLocal,guidedDeviceId} from './guided-storage';
 import type {Catalog,RecordItem} from './types';
 import {applyEvent,emptyProgress,mergeProgress,type DrillProgress} from './drill-state.mjs';
 const key='growth-drill-progress-v2';
@@ -12,6 +15,10 @@ export function DrillProvider({catalog,children}:{catalog:Catalog;children:React
  for(const old of oldWrongs())if(!initial.items[old.id])initial.items[old.id]={attempts:1,wrongCount:1,streak:0,isWrong:true,origin:'旧版本本机错题',lastAt:old.at,lastAnswer:old.selected,history:[]};
  const [progress,setProgress]=useState<DrillProgress>(initial),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const live=useRef(progress),lock=useRef(false);
+ const [guided,setGuided]=useState(emptyGuidedState);
+ const guidedEventSignature=guided.events.map(e=>e.eventId).join('|');
+ const combinedProgress=useMemo(()=>projectGuidedDrill(progress,guided,catalog.records),[progress,guidedEventSignature,catalog.records]);
+ useEffect(()=>{let live=true;const changed=()=>readGuidedLocal().then(s=>{if(live)setGuided(s);}).catch(()=>{});changed();api.getJSON(api.isLocal()?'/api/guided-review':'./data/guided-progress.json').then(async remote=>{const ids=['civil-capacity','guardian','limitation','constitution-change','state-organs','police-duty','illegal-order','supervision','inquiry-time','continue-time','nonexecution','fine','mediation','data-collision','charts'];const merged=await mergeGuidedLocal(createTransferBundle(remote,guidedDeviceId()),ids);if(live)setGuided(merged.state);}).catch(()=>{});window.addEventListener('growth-guided-changed',changed);return()=>{live=false;window.removeEventListener('growth-guided-changed',changed);};},[catalog.version]);
  const install=(p:DrillProgress)=>{live.current=p;setProgress(p);};
  useEffect(()=>{let disposed=false;
   if(api.isLocal()){lock.current=true;setBusy(true);api.getJSON('/api/drill-progress').then(async(p:DrillProgress)=>{
@@ -29,6 +36,6 @@ export function DrillProvider({catalog,children}:{catalog:Catalog;children:React
   }catch(e:any){setError('刷题进度未保存：'+e.message);if(api.isLocal())try{install(await api.getJSON('/api/drill-progress'));}catch{}return false;}
   finally{lock.current=false;setBusy(false);}
  };
- return <Context.Provider value={{progress,busy,error,save}}>{children}</Context.Provider>;
+ return <Context.Provider value={{progress:combinedProgress,busy,error,save}}>{children}</Context.Provider>;
 }
 export function useDrill(){const value=useContext(Context);if(!value)throw new Error('刷题进度尚未初始化');return value;}
