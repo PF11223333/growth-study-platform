@@ -39,7 +39,7 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  };
  const retry=()=>{setSelected([]);setReveal(false);setSaved(false);setMask(false);setPreviewLesson(false);setRating('');eventId.current=crypto.randomUUID();};
  const back=record.studyQuestion?.bank?.startsWith('police-')?`bank/${record.studyQuestion.bank}?chapter=${record.studyQuestion.chapter}&section=${record.studyQuestion.sectionId}`:'drill';
- return <section className="question-study"><GuidedContextEntry recordId={record.id} knowledgeId={record.details?.guidedLessonId||record.details?.guidedSourceAudit?.lessonId} navigate={onNavigate}/>
+ return <section className="question-study"><GuidedContextEntry recordId={record.id} knowledgeId={record.details?.guidedLessonId||record.details?.guidedSourceAudit?.lessonId} navigate={(path,params)=>onNavigate(path+(params?'?'+new URLSearchParams(params).toString():''))}/>
   <div className="question-study-tools">{!onNext&&<button className="text-link" onClick={()=>onNavigate(back)}><ChevronLeft size={16}/>回到刷题库</button>}{record.sourceRefs?.some(x=>x.sourceId)&&<button className="chip" onClick={onOriginal}><BookOpen size={15}/>查看原题与笔迹</button>}{q.origin==='generated'&&<span className="drill-label">自编巩固题 · 关联原知识点</span>}</div>
   {!q.origin&&<div className="notice">题干为机器识别参考稿，漏字或图表请对照原页。原图完整保留。</div>}
   {q.errata&&<aside className="question-errata"><small>最终版勘误</small><strong>{q.errata.note}</strong><p>记忆提示：{q.errata.mnemonic}</p></aside>}
