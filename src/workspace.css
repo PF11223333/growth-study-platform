@@ -14,3 +14,6 @@ button,a{-webkit-tap-highlight-color:transparent}button{touch-action:manipulatio
 .desk-book>.desk-book-cover>span{color:#fffbea;font-size:16px}.desk-book>.desk-book-cover>small{color:#f2f0dd;font-size:8px}
 @media(max-width:768px){.sidebar{transform:translateX(-100%);visibility:hidden;transition:transform .2s}.sidebar.open{transform:translateX(0);visibility:visible}.sidebar-scrim{position:fixed;inset:0;background:#20301a44;z-index:35}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+
+.desk-speed-entry{margin:0 0 26px;display:flex;align-items:center;gap:18px;padding:21px 25px;background:#f4f0e4;border:1px solid #e8dfc8;border-radius:13px}.desk-speed-entry>.speed-icon{width:48px;height:48px;background:#e8dfc5;color:#9a8151;border-radius:12px;display:grid;place-items:center;flex-shrink:0}.desk-speed-entry>div{flex:1}.desk-speed-entry h2{font:22px var(--serif);margin-bottom:6px}.desk-speed-entry p{font-size:12px;color:#9a8b68;line-height:1.8}.desk-speed-entry button{font-size:13px;flex-shrink:0}
+@media(max-width:768px){.desk-speed-entry{padding:17px;gap:12px;flex-wrap:wrap}.desk-speed-entry h2{font-size:21px}.desk-speed-entry p{font-size:11px}.desk-speed-entry>button{margin-left:60px;min-height:39px}.desk-speed-entry>.speed-icon{width:46px;height:46px}}

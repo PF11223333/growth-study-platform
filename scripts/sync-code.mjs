@@ -2,6 +2,7 @@ import fs from'node:fs';import path from'node:path';import crypto from'node:cryp
 export const REPO='PF11223333/growth-study-platform';
 export function github(endpoint,method='GET',body){for(let attempt=0;;attempt++){const p=spawnSync('gh',['api',endpoint,...method!=='GET'?['--method',method]:[],...body?['--input','-']:[]],{cwd:ROOT,windowsHide:true,encoding:'utf8',input:body?JSON.stringify(body):undefined,maxBuffer:20*1024*1024});if(p.status===0)return p.stdout.trim()?JSON.parse(p.stdout):{};const message=p.stderr||p.stdout;if(attempt>=3||!/EOF|reset|timeout|TLS|502|503|504|connect/i.test(message))throw new Error(message);Atomics.wait(new Int32Array(new SharedArrayBuffer(4)),0,0,1500*(attempt+1));}}
 export function gitBlobSha(bytes){return crypto.createHash('sha1').update(Buffer.from(`blob ${bytes.length}\0`,'utf8')).update(bytes).digest('hex');}
+export function isPublicReferenceImage(file,bytes){if(!/^public\/references\/[^/]+\.(?:jpe?g|png|webp)$/i.test(file)||bytes.length>5*1024*1024)return false;return /\.jpe?g$/i.test(file)?bytes.subarray(0,3).equals(Buffer.from([255,216,255]))&&bytes.lastIndexOf(Buffer.from([255,217]))>=Math.max(3,bytes.length-1024):/\.png$/i.test(file)?bytes.subarray(0,8).equals(Buffer.from([137,80,78,71,13,10,26,10])):bytes.subarray(0,4).toString()==='RIFF'&&bytes.subarray(8,12).toString()==='WEBP';}
 export function trackedTextFiles(root=ROOT){
  const listed=spawnSync('git',['ls-files','--stage','-z'],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:20*1024*1024});
  if(listed.status!==0)throw new Error('无法读取待同步源码：'+(listed.stderr||listed.error?.message||''));
@@ -10,7 +11,7 @@ export function trackedTextFiles(root=ROOT){
   const [,mode,,file]=match,target=path.resolve(root,file);
   if(/^(?:data|dist|tmp|output|node_modules|\.playwright-cli)\//.test(file)||!target.startsWith(path.resolve(root)+path.sep))throw new Error('源码发布目录不合法：'+file);
   if(!['100644','100755'].includes(mode))throw new Error('源码同步仅允许普通文本文件：'+file);
-  const bytes=fs.readFileSync(target),content=bytes.toString('utf8');if(!Buffer.from(content,'utf8').equals(bytes)||content.includes('\0'))throw new Error('源码同步仅允许 UTF-8 文本：'+file);
+  const bytes=fs.readFileSync(target),content=bytes.toString('utf8');if((!Buffer.from(content,'utf8').equals(bytes)||content.includes('\0'))&&!isPublicReferenceImage(file,bytes))throw new Error('源码同步仅允许 UTF-8 文本或 public/references 内的小型图片：'+file);
   return {path:file,mode,type:'blob',bytes,sha:gitBlobSha(bytes)};
  });
 }
