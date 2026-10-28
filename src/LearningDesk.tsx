@@ -19,6 +19,7 @@ export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate
  ];
  return <div className="learning-desk">
   <header className="desk-heading"><div><span className="section-kicker"><span/>学习工作台</span><h1>今天，学清楚一点。</h1><p>从一个问题开始，让每次练习都有收获。</p></div><div className="desk-date"><span>{today().replaceAll('-',' / ')}</span><strong>{new Intl.DateTimeFormat('zh-CN',{weekday:'long',timeZone:'Asia/Shanghai'}).format(new Date())}</strong></div></header>
+  <section className="desk-subjects" aria-label="按学科学习"><button onClick={()=>navigate('xingce')}><span className="desk-subject-number">01</span><div><h2>行测训练</h2><p>资料分析 · 图形 · 言语 · 常识 · 政治</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('shenlun')}><span className="desk-subject-number">02</span><div><h2>申论积累</h2><p>最新精读 · 金句背诵 · 词语用法训练</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('drill',{subject:'gongan'})}><span className="desk-subject-number">03</span><div><h2>公安刷题</h2><p>原题与教材 · 逐项解析 · 薄弱点复盘</p></div><ArrowUpRight size={20}/></button></section>
   <section className="desk-actions" aria-label="学习快捷入口">{actions.map(({title,hint,detail,Icon,path,params,tone},i)=><button className={`desk-action ${tone}`} key={path} onClick={()=>navigate(path,params)}><span className="desk-action-top"><span className="action-icon"><Icon size={23}/></span><small>0{i+1}</small></span><h2>{title}<ArrowUpRight size={20}/></h2><p>{hint}</p><span className="desk-action-detail">{detail}</span></button>)}</section>
   <section className="desk-speed-entry"><span className="speed-icon"><Calculator size={24}/></span><div><h2>速算训练</h2><p>把公式练顺手 · 随机混练、逐步讲解、错题重练</p></div><button className="button outline" onClick={()=>navigate('speed-math')}>练一轮速算 <ArrowRight size={16}/></button></section>
   <div className="desk-lower"><section className="desk-route"><div className="desk-section-head"><div><span className="section-kicker">不必一次做很多</span><h2>留半小时，完成一小步。</h2></div><Compass size={26} strokeWidth={1.4}/></div><p>做错不是终点。看清差在哪，再用自己的话说一遍。</p><ol className="study-route"><li><span>1</span><div><strong>先做一道</strong><small>看原题，独立选择</small></div></li><li><span>2</span><div><strong>弄清为什么</strong><small>比选项，找条件和依据</small></div></li><li><span>3</span><div><strong>留下提醒</strong><small>记住下次要警觉的词</small></div></li></ol><button className="button primary" onClick={()=>navigate('guided-review')}>开始今日30分钟复盘 <ArrowRight size={17}/></button></section>
@@ -28,7 +29,7 @@ export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate
    {title:'卡片与速记',text:'知识卡、记忆卡与随手记，按用途查看。',Icon:Layers,path:'cards'},
    {title:'三科复盘',text:'行测、申论、公安，查看记录与薄弱点。',Icon:FileText,path:'review'},
    {title:'向内生长',text:'每日复盘、计划、导师记录和成长工具。',Icon:Leaf,path:'growth'},
-   {title:'申论与常识',text:'精读、表达和常识积累，学完留下理解。',Icon:PenLine,path:'library',params:{tab:'articles'}}
-  ].map(({title,text,Icon,path,params})=><button key={title} onClick={()=>navigate(path,params)}><Icon size={22}/><div><h3>{title}</h3><p>{text}</p></div><ArrowRight size={17}/></button>)}</div></section>
+   {title:'词语用法训练',text:'305条表达，随机选义、语境填词与个人记忆句。',Icon:PenLine,path:'vocabulary'}
+  ].map(({title,text,Icon,path})=><button key={title} onClick={()=>navigate(path)}><Icon size={22}/><div><h3>{title}</h3><p>{text}</p></div><ArrowRight size={17}/></button>)}</div></section>
  </div>;
 }

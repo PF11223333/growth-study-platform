@@ -1,0 +1,15 @@
+export type VocabularyEntry={id:string;number:number;word:string;label:string;displayLabel?:string;meaning:string;usage:string;example:string;exampleOrigin?:string;explanation?:string;duplicateGroup?:string;source:{page:number;text:string;documentLabel?:string;originalMeaning?:string;originalExample?:string};verification?:{status:string;notes:string[]};[key:string]:any};
+export type VocabularyBundle={schemaVersion:number;title:string;source:{id:string;title:string;pageCount:number;attributionNote?:string};entries:VocabularyEntry[];audit?:any};
+export type VocabularyQuestion={id:string;entryId:string;mode:'meaning'|'sentence';prompt:string;options:{id:string;text:string}[];correctOptionId:string};
+export type VocabularyEvent={id:string;entryId:string;mode:'meaning'|'sentence';correct:boolean;hintUsed:boolean;confidence:'确定'|'犹豫'|'猜的';selected:string;at:string};
+export type VocabularySession={id:string;questions:VocabularyQuestion[];index:number;selection:string;hintUsed:boolean;confidence:VocabularyEvent['confidence']};
+export type VocabularyWorkspace={schemaVersion:number;events:VocabularyEvent[];notes:Record<string,{text:string;at:string;history?:{text:string;at:string}[]}>;session:VocabularySession|null};
+export const VOCABULARY_KEY:string;
+export function normalizeWord(s:unknown):string;
+export function seededRandom(seed:number):()=>number;
+export function shuffle<T>(items:T[],random?:()=>number):T[];
+export function makeVocabularyRound(entries:VocabularyEntry[],options?:{mode?:string;size?:number;seed?:number;previousIds?:string[];onlyIds?:string[]}):VocabularyQuestion[];
+export function emptyVocabularyWorkspace():VocabularyWorkspace;
+export function readVocabularyWorkspace(raw:unknown):VocabularyWorkspace;
+export function vocabularyProgress(events:VocabularyEvent[]):Record<string,{attempts:number;correct:number;independent:number;reviewStage:number;lastAt:string;lastCorrect:boolean;nextReview:string;days:string[]}>;
+export function mergeVocabularyWorkspace(current:VocabularyWorkspace,incoming:unknown):{state:VocabularyWorkspace;added:number};

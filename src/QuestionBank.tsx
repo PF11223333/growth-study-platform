@@ -16,7 +16,7 @@ function ScanPage({page,scale,label,imageKey,onStatus,onReference}:{page:any;sca
  const region=page.region||{x:0,y:0,w:1,h:1};
  const w=Math.max(.01,Number(region.w)||1),h=Math.max(.01,Number(region.h)||1),x=Number(region.x)||0,y=Number(region.y)||0;
  const width=Number(page.width)||1000,height=Number(page.height)||1414;
- const src=`./previews/${page.sourceId}/${page.page}-clean.webp${attempt?`?retry=${attempt}`:''}`;
+ const src=`./previews/${page.sourceId}/${page.page}${['','-hd','-clean'].includes(page.previewSuffix)?page.previewSuffix:'-clean'}.webp${attempt?`?retry=${attempt}`:''}`;
  const open=()=>onReference({sourceId:page.sourceId,page:page.page,regions:[{x,y,w,h}],label});
  const retry=()=>{setFailed(false);setLoaded(false);setAttempt(value=>value+1);onStatus(imageKey,'loading');};
  return <figure className="study-scan-page">
@@ -29,9 +29,9 @@ function ScanPage({page,scale,label,imageKey,onStatus,onReference}:{page:any;sca
   <figcaption><span>PDF 第 {page.page} 页</span><button className="text-link" onClick={open}>查看完整原页 <ArrowUpRight size={13}/></button></figcaption>
  </figure>;
 }
-function OriginalScan({pages,number,kind='question',onStatus,onReference}:{pages:any[];number?:number;kind?:'question'|'context';onStatus:(key:string,status:ImageStatus)=>void;onReference:(ref:SourceRef)=>void}){
+function OriginalScan({pages,number,kind='question',previewNote,onStatus,onReference}:{pages:any[];number?:number;kind?:'question'|'context';previewNote?:string;onStatus:(key:string,status:ImageStatus)=>void;onReference:(ref:SourceRef)=>void}){
  const [scale,setScale]=useState(1),label=kind==='context'?'本组情景材料':`第 ${number||''} 题原文`;
- return <section className="study-original" aria-label={label}><div className="study-scan-toolbar"><div><strong>{kind==='context'?'共享情景材料':`原题正文${number?` · 第 ${number} 题`:''}`}</strong><small>{pages.length>1?`${pages.length} 段原页，请接着往下读`:'原页图像'} · 已隐藏红蓝笔迹</small></div><div className="study-zoom"><button className="icon-button" aria-label={`缩小${label}`} disabled={scale===1} onClick={()=>setScale(Math.max(1,scale-.5))}><ZoomOut size={18}/></button><span>{Math.round(scale*100)}%</span><button className="icon-button" aria-label={`放大${label}`} disabled={scale===3} onClick={()=>setScale(Math.min(3,scale+.5))}><ZoomIn size={18}/></button></div></div><button className="chip study-mobile-zoom" onClick={()=>setScale(scale===1?3:1)}>{scale===1?<ZoomIn size={16}/>:<ZoomOut size={16}/>} {scale===1?'字小？一键放大阅读':'恢复完整题目概览'}</button>{scale>1&&<p className="study-content-note">可左右滑动查看放大后的内容。<button className="text-link" onClick={()=>setScale(1)}>恢复适合屏幕</button></p>}{pages.map((page:any,i:number)=><ScanPage key={`${kind}:${page.sourceId}:${page.page}:${i}`} page={page} scale={scale} label={label} imageKey={`${kind}:${i}`} onStatus={onStatus} onReference={onReference}/>)}</section>;
+ return <section className="study-original" aria-label={label}><div className="study-scan-toolbar"><div><strong>{kind==='context'?'共享情景材料':`原题正文${number?` · 第 ${number} 题`:''}`}</strong><small>{pages.length>1?`${pages.length} 段原页，请接着往下读`:'原页图像'} · {previewNote||'已隐藏红蓝笔迹'}</small></div><div className="study-zoom"><button className="icon-button" aria-label={`缩小${label}`} disabled={scale===1} onClick={()=>setScale(Math.max(1,scale-.5))}><ZoomOut size={18}/></button><span>{Math.round(scale*100)}%</span><button className="icon-button" aria-label={`放大${label}`} disabled={scale===3} onClick={()=>setScale(Math.min(3,scale+.5))}><ZoomIn size={18}/></button></div></div><button className="chip study-mobile-zoom" onClick={()=>setScale(scale===1?3:1)}>{scale===1?<ZoomIn size={16}/>:<ZoomOut size={16}/>} {scale===1?'字小？一键放大阅读':'恢复完整题目概览'}</button>{scale>1&&<p className="study-content-note">可左右滑动查看放大后的内容。<button className="text-link" onClick={()=>setScale(1)}>恢复适合屏幕</button></p>}{pages.map((page:any,i:number)=><ScanPage key={`${kind}:${page.sourceId}:${page.page}:${i}`} page={page} scale={scale} label={label} imageKey={`${kind}:${i}`} onStatus={onStatus} onReference={onReference}/>)}</section>;
 }
 export function QuestionBank({catalog,bank,params,onNavigate,onOpen}:{catalog:Catalog;bank:string;params:URLSearchParams;onNavigate:(p:string,params?:Record<string,string>)=>void;onOpen:(r:RecordItem)=>void}){
  const [query,setQuery]=useState(''),[limit,setLimit]=useState(36);
@@ -50,7 +50,7 @@ export function QuestionBank({catalog,bank,params,onNavigate,onOpen}:{catalog:Ca
  <div className="bank-caption"><span>{filtered.length} 道题 · 按原册查题</span><button className="text-link" onClick={()=>onNavigate('record/drill-20260917-guide')}>笔迹识别说明 <ArrowUpRight size={14}/></button></div>
  <div className="bank-question-list">{filtered.slice(0,limit).map(r=>{const q=r.studyQuestion;return <button key={r.id} className="bank-question" onClick={()=>onOpen(r)}><span className="bank-number">{q.caseNumber?`${q.caseNumber}–`:''}{q.number}</span><span className="bank-question-copy"><small>{q.sectionName} · {typeNames[q.type]} · 原册 {q.printedPage} 页</small><strong>{q.promptPreview||r.title}</strong><span className="bank-badges">{q.blueMark&&<em className="blue">蓝色标记</em>}{q.redMark&&<em className="red">红色批注</em>}{q.needsConfirmation&&<em>识别待确认</em>}</span></span><ArrowUpRight size={18}/></button>;})}</div>{!filtered.length&&<p className="muted">没有符合条件的题目，可调整筛选。</p>}{filtered.length>limit&&<button className="button load-more" onClick={()=>setLimit(limit+36)}>再看 36 道题</button>}</>;
 }
-export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,initialAttempt,onTeachingReference,attemptEventId}:{record:RecordItem;onTeachingReference?:(ref:SourceRef)=>void;onOriginal:()=>void;onNavigate:StudyNavigate;onNext?:()=>void;onResult?:(answer:string,correct:boolean|null,rating?:string)=>void;initialAttempt?:{answer:string;correct:boolean|null;rating?:string};attemptEventId?:string}){
+export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,initialAttempt,onTeachingReference,attemptEventId,readOnlyStudy=false}:{readOnlyStudy?:boolean;record:RecordItem;onTeachingReference?:(ref:SourceRef)=>void;onOriginal:()=>void;onNavigate:StudyNavigate;onNext?:()=>void;onResult?:(answer:string,correct:boolean|null,rating?:string)=>void;initialAttempt?:{answer:string;correct:boolean|null;rating?:string};attemptEventId?:string}){
  const q=record.details?.question||{},study=record.studyQuestion||{}, {busy,error,save,progress}=useDrill();
  const [selected,setSelected]=useState<string[]>(initialAttempt?.answer?.split('')||[]),[reveal,setReveal]=useState(!!initialAttempt),[saved,setSaved]=useState(!!initialAttempt&&initialAttempt.correct!==null),[rating,setRating]=useState(initialAttempt?.rating||''),[mask,setMask]=useState(false),[studyOnly,setStudyOnly]=useState(!!initialAttempt&&initialAttempt.correct===null),[showText,setShowText]=useState(false);
  const [imageStates,setImageStates]=useState<Record<string,ImageStatus>>({});
@@ -67,16 +67,16 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  const completeText=completeQuestionText&&(!contextPages.length||q.contextTextVerified===true&&readableOption(q.fullContextText||q.contextText));
  const neededImages=[...pages.map((_:any,i:number)=>`question:${i}`),...contextPages.map((_:any,i:number)=>`context:${i}`)];
  const imageFailed=neededImages.some(key=>imageStates[key]==='failed'),imagesLoaded=pages.length>0&&neededImages.every(key=>imageStates[key]==='loaded');
- const readingReady=!scanned||completeText||imagesLoaded;
+ const readingReady=q.requiresImage?imagesLoaded:(!scanned||completeText||imagesLoaded);
  const conflict=!!q.answerConflict&&!q.answerConflictResolved;
- const exclusion=q.gradingExcluded||study.gradingExcluded||conflict;
- const exclusionReason=q.gradingExclusionReason||q.gradingExcludedReason||study.gradingExclusionReason||(conflict?'本题存在答案差异，需先核对依据。':'这道题的题目或参考答案尚未核对完整。');
+ const exclusion=readOnlyStudy||q.gradingExcluded||study.gradingExcluded||conflict;
+ const exclusionReason=(readOnlyStudy?'本轮为原页自测，只核对教材与讲解，不写入对错统计。':'')||q.gradingExclusionReason||q.gradingExcludedReason||study.gradingExclusionReason||(conflict?'本题存在答案差异，需先核对依据。':'这道题的题目或参考答案尚未核对完整。');
  const canGrade=!exclusion&&readingReady&&!studyOnly;
  const chosen=selected.join(''),correct=canGrade?gradeQuestion(q,chosen,rating):null;
  const expected=normalizeAnswer(q.referenceAnswer).split(''),missing=expected.filter(letter=>!selected.includes(letter)),extra=selected.filter(letter=>!expected.includes(letter));
  const hasAnswer=q.type==='recall'?!!q.referenceAnswer:expected.length>0;
  const teaching=questionTeaching(record),typeLabel=q.type==='single'?'单项选择 · 选 1 项':q.type==='multi'?'多项选择 · 选出所有符合项':q.type==='recall'?'开放自测 · 回忆后自评':'情景选择 · 依原题要求，可选多项';
- const displayText=completeQuestionText&&(!pages.length||showText||imageFailed),ungraded=reveal&&(!canGrade||!hasAnswer);
+ const displayText=completeQuestionText&&(!pages.length||q.hideOriginalUntilAnswer||showText||imageFailed),ungraded=reveal&&(!canGrade||!hasAnswer);
  const choose=(letter:string)=>{if(reveal||busy)return;setSelected(current=>q.type==='single'?[letter]:current.includes(letter)?current.filter(value=>value!==letter):[...current,letter].sort());};
  const focusFeedback=()=>requestAnimationFrame(()=>answerPanel.current?.focus({preventScroll:true}));
  const submit=async(nextRating?:string)=>{
@@ -92,14 +92,14 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  const continuePractice=()=>navigate('drill',Object.fromEntries(Object.entries({bank:study.bank||'',chapter:String(study.chapter||''),section:study.sectionId||'',after:record.id,order:'random',autostart:'1'}).filter(([,value])=>value)));
  const next=()=>{if(busy||submitting.current)return;if(onNext){if(!saved)onResult?.('',null);onNext();}else continuePractice();};
  return <section className="question-study study-surface">
-  <div className="question-study-tools">{!onNext&&<button className="text-link" onClick={()=>study.bank?navigate(`bank/${study.bank}`,{chapter:String(study.chapter||''),section:study.sectionId||''}):navigate('drill')}><ChevronLeft size={16}/>按原册查题</button>}{record.sourceRefs?.some(ref=>ref.sourceId)&&<button className="chip" onClick={onOriginal}><BookOpen size={15}/>原页与我的笔迹</button>}</div>
+  <div className="question-study-tools">{!onNext&&<button className="text-link" onClick={()=>study.bank==='xingce-tutorial'?navigate('xingce',{section:study.xingceSection||String(study.sectionId||'').replace(/^xingce-/, '')||'data'}):study.bank?navigate(`bank/${study.bank}`,{chapter:String(study.chapter||''),section:study.sectionId||''}):navigate('drill')}><ChevronLeft size={16}/>按原册查题</button>}{record.sourceRefs?.some(ref=>ref.sourceId)&&<button className="chip" onClick={onOriginal}><BookOpen size={15}/>原页与我的笔迹</button>}</div>
   <div className="study-question-heading"><strong>{typeLabel}</strong>{q.origin==='generated'?<span>原创巩固题</span>:study.number?<span>原册第 {study.number} 题</span>:null}</div>
   {(exclusion||!hasAnswer)&&<aside className="study-grade-notice" role="status"><AlertCircle size={19}/><div><strong>待核对，本题暂不判分</strong><p>{!hasAnswer?'尚无可用的参考答案。':exclusionReason}</p>{q.answerConflict&&<p>{q.answerConflict}</p>}<span>查看资料或跳过，不会增加作答次数与错题。</span></div></aside>}
-  {(contextPages.length>0||q.contextText||q.fullContextText)&&<details className="study-case-context" open><summary><span>{study.caseTitle||'本组共用的情景材料'}</span>{study.caseCount>1&&<small>第 {study.caseIndex||1} / {study.caseCount} 小题</small>}</summary>{contextPages.length>0&&<OriginalScan pages={contextPages} kind="context" onStatus={onImageStatus} onReference={openReference}/>} {(q.fullContextText||q.contextText)&&(!scanned||verifiedText)&&<div className="study-context-text preserve">{q.fullContextText||q.contextText}</div>}</details>}
-  {pages.length>0&&<OriginalScan pages={pages} number={study.number} onStatus={onImageStatus} onReference={openReference}/>}
+  {(contextPages.length>0||q.contextText||q.fullContextText)&&<details className="study-case-context" open><summary><span>{study.caseTitle||'本组共用的情景材料'}</span>{study.caseCount>1&&<small>第 {study.caseIndex||1} / {study.caseCount} 小题</small>}</summary>{contextPages.length>0&&<OriginalScan pages={contextPages} kind="context" previewNote={q.previewNote} onStatus={onImageStatus} onReference={openReference}/>} {(q.fullContextText||q.contextText)&&(!scanned||verifiedText)&&<div className="study-context-text preserve">{q.fullContextText||q.contextText}</div>}</details>}
+  {pages.length>0&&(!q.hideOriginalUntilAnswer||reveal)&&<OriginalScan pages={pages} number={study.number} previewNote={q.previewNote} onStatus={onImageStatus} onReference={openReference}/>}
   {scanned&&!pages.length&&!completeText&&<div className="study-scan-error" role="status"><AlertCircle size={22}/><strong>本题原图尚未准备好</strong><p>题干或选项的识别文字不完整，请打开原页阅读。本题暂不计分。</p><button className="button outline" onClick={onOriginal}>打开原题与笔迹 <ArrowUpRight size={15}/></button></div>}
   {pages.length>0&&completeQuestionText&&<button className="text-link study-text-toggle" onClick={()=>setShowText(!showText)}>{showText?'收起文字版':contextPages.length?'查看已核对的小问文字':'查看已核对文字版'}</button>}
-  {imageFailed&&completeText&&<p className="study-content-note">原图暂时无法加载，以下为已核对的完整文字版，可据此作答。</p>}
+  {imageFailed&&completeText&&<p className="study-content-note">{q.requiresImage?'本题需要图形信息，原图加载完整后才可判分。':'原图暂时无法加载，以下为已核对的完整文字版，可据此作答。'}</p>}
   {(displayText||!scanned)&&<p className="question-prompt preserve">{q.prompt||'题干尚未完整录入。'}</p>}
   {q.type==='recall'?<p className="study-content-note">先自己说出答案和理由，再展开核对；开放题通过自评安排复习。</p>:<fieldset className="study-choice-fieldset"><legend>{q.type==='single'?'请选择一个答案':'请选择答案，可选多项'}</legend><div className="question-options">{letters.map(letter=>{
    const selectedHere=selected.includes(letter),showGrade=reveal&&canGrade&&hasAnswer,expectedHere=expected.includes(letter);

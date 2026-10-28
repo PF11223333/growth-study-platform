@@ -3,6 +3,7 @@ import {ROOT,DATA,read,write,backup,atomic,hash,idFor,uid,now,dateCN,catalog,sav
 import {importLegacy}from'../scripts/import.mjs';import {previews}from'../scripts/previews.mjs';
 import {readDrill,saveDrillEvent} from './drill.mjs';
 import {readGuided,readGuidedLessons,saveGuided,importGuided} from './guided.mjs';
+import {syncShenlun} from '../scripts/sync-shenlun.mjs';
 const port=Number(process.env.PORT||4186),token=crypto.randomBytes(24).toString('hex');let busy=false,publishProcess=null;const mime={'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json; charset=utf-8','.svg':'image/svg+xml','.png':'image/png','.jpg':'image/jpeg','.webp':'image/webp','.pdf':'application/pdf','.woff2':'font/woff2'};
 const reply=(res,data,status=200)=>{res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Cache-Control':'no-store','X-Content-Type-Options':'nosniff'});res.end(JSON.stringify(data));};
 async function body(req){const chunks=[];let n=0;for await(const b of req){n+=b.length;if(n>190*1024*1024){const e=new Error('文件超过 140 MB 上传限制');e.status=413;throw e;}chunks.push(b);}return JSON.parse(Buffer.concat(chunks).toString('utf8')||'{}');}
@@ -18,6 +19,7 @@ async function handler(req,res){try{
  if(p==='/api/drill-progress'&&req.method==='GET')return reply(res,readDrill());
  if(p==='/api/guided-review'&&req.method==='GET')return reply(res,readGuided());
  if(p==='/api/guided-lessons'&&req.method==='GET')return reply(res,readGuidedLessons());
+ if(p==='/api/vocabulary'&&req.method==='GET'){const file=path.join(DATA,'vocabulary.json');return fs.existsSync(file)?reply(res,JSON.parse(fs.readFileSync(file,'utf8'))):reply(res,{error:'词语资料尚未安装'},404);}
  if(p==='/api/search'&&req.method==='GET')return reply(res,read().records.filter(r=>!r.archived).map(r=>({id:r.id,text:[r.title,r.body,r.topic,JSON.stringify(r.details?.pageOCR||[]),...r.tags||[]].join(' ').toLowerCase()})));
  if(p==='/api/growth'&&req.method==='GET')return reply(res,{growth:read().growth,version:read().version});
  if(p==='/api/status'&&req.method==='GET'){const db=read();const statusFile=path.join(DATA,'publish-status.json');return reply(res,{publication:fs.existsSync(statusFile)?JSON.parse(fs.readFileSync(statusFile,'utf8')):db.publication,conflicts:db.conflicts,backups:fs.existsSync(path.join(DATA,'backups'))?fs.readdirSync(path.join(DATA,'backups')).filter(f=>f.endsWith('.json')).sort().reverse().slice(0,30):[],migration:db.legacyEvidence?.counts});}
@@ -34,6 +36,7 @@ async function handler(req,res){try{
    if(p==='/api/backup')return reply(res,{name:backup(db)});
    if(p==='/api/restore'){if(!/^snapshot-[\w.-]+\.json$/.test(input.name||''))throw new Error('备份名称无效');const restored=JSON.parse(fs.readFileSync(path.join(DATA,'backups',input.name),'utf8'));if(restored.schemaVersion!==1||!Array.isArray(restored.records)||!Array.isArray(restored.sources))throw new Error('备份格式无效');backup(db);restored.version=db.version;write(restored);return reply(res,{ok:true});}
    if(p==='/api/import')return reply(res,await importLegacy());
+   if(p==='/api/sync-shenlun'){const result=syncShenlun({apply:true,mirror:true});fs.cpSync(path.join(ROOT,'public','shenlun'),path.join(ROOT,'dist','shenlun'),{recursive:true});return reply(res,result);}
    if(p==='/api/conflict'){const c=db.conflicts.find(c=>c.id===input.id);if(!c)throw new Error('冲突不存在');if(!['local','incoming'].includes(input.choice))throw new Error('请选择保留版本');backup(db);if(input.choice==='incoming'){const old=db.records.find(r=>r.id===c.recordId);db.archives.push({recordId:old.id,at:now(),record:old});db.records[db.records.indexOf(old)]={...c.incoming,revision:old.revision+1};}else{db.records.find(r=>r.id===c.recordId).importHash=c.incoming.importHash;}db.conflicts=db.conflicts.filter(x=>x.id!==c.id);write(db);return reply(res,{ok:true});}
    if(p==='/api/upload'){
     const filename=String(input.filename||'');const ext=path.extname(filename).toLowerCase();if(!['.pdf','.png','.jpg','.jpeg','.webp'].includes(ext))throw new Error('支持 PDF、PNG、JPG 和 WebP');const bytes=Buffer.from(String(input.base64||''),'base64');if(!bytes.length||bytes.length>140*1024*1024)throw new Error('文件为空或超过 140 MB');
