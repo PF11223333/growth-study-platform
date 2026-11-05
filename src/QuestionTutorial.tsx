@@ -17,6 +17,7 @@ export function readableOption(value:unknown):value is string{
 export function questionTeaching(record:RecordItem){
  const q=record.details?.question||{},authored=q.tutorial?.authored;
  const options=Object.entries(q.optionExplanations||{}).filter(([,note]:any)=>{
+  if(q.answerVerificationStatus==='book-key'&&note?.status==='题册答案对照；法规全文未独立核验'&&typeof note.text==='string'&&note.text.trim())return true;
   return note&&typeof note.text==='string'&&note.text.trim()&&!/待核|待确认|未核/.test(note.status||'')&&
    !/未完整识别|教材答案[不]*包含本项|本项不符合本题条件。|独立法条与推理尚待/.test(note.text)&&
    /已核对|已逐项核对|已核验|人工核验|原创/.test(note.status||'');
