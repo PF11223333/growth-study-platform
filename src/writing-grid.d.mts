@@ -1,0 +1,10 @@
+export const WRITING_STORAGE_KEY:string;
+export type WritingDraft={id:string;taskId:string;profileId:string;title:string;salutation:string;body:string;signature:string;dateLine:string;notes:string;selfCheck:string[];grid:{columns:number;indent:number;halfWidth:boolean};taskSnapshot:any;createdAt:string;updatedAt:string;elapsedMs:number;runningSince:number|null;status:string;importConflictOf?:string};
+export type WritingWorkspace={schemaVersion:number;drafts:WritingDraft[];versions:{id:string;draftId:string;at:string;label:string;draft:WritingDraft}[];activeDraftId:string};
+export function graphemes(text?:string):string[];
+export function writingCounts(draft:Partial<WritingDraft>):{body:number;total:number;paragraphs:number};
+export function layoutWriting(draft:Partial<WritingDraft>,config?:any):{columns:number;rows:{kind:string;cells:{text:string;kind:string;squeezed?:boolean}[]}[];counts:{body:number;total:number;paragraphs:number};warnings:{id:string;text:string}[];occupiedCells:number;squeezedCount:number};
+export function emptyWritingWorkspace():WritingWorkspace;
+export function readWritingWorkspace(raw:any):WritingWorkspace;
+export function mergeWritingWorkspace(current:any,incoming:any):{workspace:WritingWorkspace;added:number;conflicts:number};
+export function snapshotWriting(workspace:WritingWorkspace,draft:WritingDraft,label?:string,at?:string):WritingWorkspace;

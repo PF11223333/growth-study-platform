@@ -1,8 +1,8 @@
-export type MathQuestion={id:string;key:string;category:string;params:Record<string,any>;kind:'numeric'|'choice';prompt:string;answer:string;unit:string;precision:number;rounding:boolean;numerator:number;denominator:number;hint:string;steps:string[];memory:string;pitfall:string;note:string;options?:{value:string}[]};
+export type MathQuestion={id:string;key:string;category:string;params:Record<string,any>;kind:'numeric'|'choice';prompt:string;answer:string;unit:string;precision:number;rounding:boolean;numerator:number;denominator:number;hint:string;steps:string[];memory:string;pitfall:string;note:string;options?:{value:string;label?:string}[]};
 export type MathEvent={id:string;sessionId:string;question:MathQuestion;answer:string;outcome:'correct'|'wrong'|'viewed'|'skipped';elapsedMs:number;hintUsed:boolean;at:string};
 export type MathSession={id:string;mode:string;createdAt:string;questions:MathQuestion[];index:number;answers:MathEvent[];elapsedMs:number;paused:boolean;draft:string;hintUsed:boolean};
 export type MathWorkspace={schemaVersion:1;events:MathEvent[];session:MathSession|null};
-export type Technique={id:string;name:string;group:string;rule:string;example:string;pitfall:string};
+export type Technique={id:string;name:string;group:string;rule:string;example:string;pitfall:string;appliesTo?:string;counterexample?:string;sourceIds?:string[]};
 export const SPEED_MATH_VERSION:number;
 export const FORMULA_PHOTO:string;
 export const techniques:Technique[];
@@ -18,3 +18,7 @@ export function loadMathWorkspace(raw:unknown):MathWorkspace;
 export function mathMistakes(events:MathEvent[]):MathEvent[];
 export function mathStatistics(events:MathEvent[]):(Technique&{seen:number;attempts:number;correct:number;rate:number|null;averageMs:number|null;needsWork:number})[];
 export function recordMathEvent(workspace:MathWorkspace,event:MathEvent):MathWorkspace;
+export type MathReview={question:MathQuestion;stage:number;dueDate:string;lastAdvance:string|null;lastPracticed:string;needsRecall:boolean;independentDays:number;due:boolean};
+export function mathReviewSchedule(events:MathEvent[],now?:string):MathReview[];
+export function divisionBounds(a:number,b:number,digits?:number):{rounded:number;scale:number;lower:number;upper:number;estimate:number};
+export function safeNearestOption(bounds:{lower:number;upper:number},options:(string|number)[]):number|null;

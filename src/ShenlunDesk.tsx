@@ -39,6 +39,7 @@ export function ShenlunDesk({catalog,params,navigate,onOpen,onSync}:Props){
    <button className="shenlun-start" onClick={()=>move('memory')}><Bookmark size={24}/><span><small>02 · 记牢</small><strong>遮住答案，主动回忆</strong><p>标题、表达、古文、案例与权威论述</p></span><ArrowUpRight size={21}/></button>
    <button className="shenlun-start" onClick={()=>navigate('vocabulary')}><Sparkles size={24}/><span><small>03 · 会用</small><strong>305词与搭配训练</strong><p>原表标注300词 · 打乱练习，连起词语与语境</p></span><ArrowUpRight size={21}/></button>
   </section>
+  <section className="shenlun-writing-entry"><div><span className="section-kicker">从积累走向落笔</span><h2>写一份，再认真改一稿。</h2><p>按考试类型选任务 · 材料训练 · 模拟方格 · 标点与格式 · 留下改写记录</p></div><button className="button primary" onClick={()=>navigate('writing')}>进入写作实战 <ArrowRight size={17}/></button></section>
   <nav className="shenlun-tabs" aria-label="申论资料分类">{tabs.map(([key,label])=><button key={key} aria-current={view===key?'page':undefined} onClick={()=>move(key)}>{label}</button>)}</nav>
   {embedded?<section className="shenlun-embedded">
    <div className="shenlun-frame-heading"><div><h2>{view==='complete'?'熟悉的完整素材库':'今日背诵 · 先回忆，再揭晓'}</h2><p>{view==='complete'?'保留全文搜索、四类索引、收藏、学习笔记与记录导入导出。':'切换日期、背诵模式与完成标记，沿用原站的学习方式。'}</p></div><a className="button primary" href={`./shenlun/${frame}`}><ExternalLink size={16}/>全屏学习</a></div>

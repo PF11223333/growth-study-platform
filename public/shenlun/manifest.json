@@ -1,7 +1,8 @@
 {
   "schemaVersion": 1,
-  "latestDate": "2026-10-28",
+  "latestDate": "2026-11-05",
   "dates": [
+    "2026-11-05",
     "2026-10-28",
     "2026-10-24",
     "2026-10-20",
@@ -73,14 +74,14 @@
     "2026-06-22",
     "2026-06-21"
   ],
-  "dayCount": 70,
-  "articleCount": 270,
-  "expressionCount": 780,
-  "authorityCount": 189,
-  "sourceDigest": "bf57bc4b9550ef090497073fc63c081d1555cd3ce2555687ce8e127c90932a27",
+  "dayCount": 71,
+  "articleCount": 275,
+  "expressionCount": 795,
+  "authorityCount": 191,
+  "sourceDigest": "fe86c91c9e794d9a051151bcd3b44c832413053a984cfa694f424bd7def8d6f9",
   "originalSite": "https://pf11223333.github.io/shenlun-material-library/",
   "sourceLabel": "申论素材库 · 既有每日积累与四类索引",
-  "originalHtmlHash": "b871e7a8e6779f18863323250fbc2bbca0beba07a39bfad4a3872e3571695e5d",
+  "originalHtmlHash": "192ef503c9300eea716be4d980f60da7c6a77342d2e6190ad9dbf0852f2e5048",
   "features": [
     "今日学习",
     "全文搜索",
@@ -376,20 +377,24 @@
       "sha256": "6728404857d069aeef4fd8d974b7b983fa9721224d3c17211fd23dc7128b597c"
     },
     {
+      "name": "每日积累/2026-11-05.md",
+      "sha256": "e9350ef42a53cefab4a1ca197011076d403b0aeb146960483cfd7e7fa0b7be8f"
+    },
+    {
       "name": "文章来源索引.md",
-      "sha256": "90e26ae58dc806b3527b345ae3be11f061fbd6a3bccfe4d3f889e994ba40e45c"
+      "sha256": "7d0e6e4ea0e02346a977dc8af64f39b24eaba389b1a18b8b84062ce3b727582f"
     },
     {
       "name": "主题索引.md",
-      "sha256": "f53ecfedeb0fbca7a1ef8c939e6fee00ded68c174d4f935a2970cb3cb058724c"
+      "sha256": "6930bbdd4a6c920d6dac6d8ca8cf93bafd47758a43b0b96cc8a14e9f188471ff"
     },
     {
       "name": "金句与传统表达索引.md",
-      "sha256": "6366b4a68e62485d90701d097ad8d9ef56c96d7dd7a0293e31c91b1157ab76e3"
+      "sha256": "5b824b46443905163539e7c082f59c04c3cae5d26a5e2aa2352bed80de421aa0"
     },
     {
       "name": "权威论述索引.md",
-      "sha256": "76fd4f3e6ae4be210d92874d83edaa697f807fc98c6f196e3a21db5d3e2b3c9b"
+      "sha256": "0f20cc1972843df1e19179370a0b3570718cba07516883d9a663bdd92b1997c7"
     },
     {
       "name": "学习与复盘指南.md",
@@ -405,15 +410,15 @@
     }
   ],
   "mirror": {
-    "latestDate": "2026-10-28",
+    "latestDate": "2026-11-05",
     "files": {
       "index.html": {
-        "bytes": 7916833,
-        "sha256": "3bfaf828c96bca670b63d930bb30df66d5493555b67cfb6daebd6ba4b78417f6"
+        "bytes": 7994829,
+        "sha256": "3628b6613de40ef3258a21e69d23183a6b0b715a7c931b0d970d9405d1f7b65f"
       },
       "today.html": {
-        "bytes": 376392,
-        "sha256": "c952ae1e4beed69e89a0baab33c24bf21baaf7e6d37fc69a3f6a8f6db66462ee"
+        "bytes": 377597,
+        "sha256": "6c71b677ec6e5c773394a9786b29e403481a561522b23781b85a40e0fcb64327"
       }
     },
     "fixes": [

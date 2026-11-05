@@ -11,7 +11,7 @@ test('所有技巧随机题的答案与独立数值计算一致，选项有且�
 });
 test('混合轮覆盖多类、顺序会变、同轮不重，上一轮题目尽量避开',()=>{
  const a=buildMathRound({seed:12,size:20}),b=buildMathRound({seed:13,size:20,previousKeys:a.map(q=>q.key)});
- assert.notDeepEqual(a.map(q=>q.key),b.map(q=>q.key));assert.equal(new Set(a.map(q=>q.category)).size,11);assert.equal(new Set(b.map(q=>q.key)).size,20);assert.ok(b.every(q=>!a.some(old=>old.key===q.key)));
+ assert.notDeepEqual(a.map(q=>q.key),b.map(q=>q.key));assert.equal(new Set(a.map(q=>q.category)).size,Math.min(20,techniques.length));assert.equal(new Set(b.map(q=>q.key)).size,20);assert.ok(b.every(q=>!a.some(old=>old.key===q.key)));
  for(let i=1;i<a.length;i++)assert.notEqual(a[i].category,a[i-1].category);
  assert.throws(()=>buildMathRound({categories:[]}));
 });

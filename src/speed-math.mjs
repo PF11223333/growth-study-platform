@@ -1,5 +1,7 @@
 // All answers are computed from integer ratios. Teaching text is generated
 // from the same operands, never from an independent handwritten answer key.
+import {appliedTechniques,isAppliedTechnique,appliedParameters,makeAppliedQuestion} from './speed-math-applied.mjs';
+export {divisionBounds,safeNearestOption} from './speed-math-applied.mjs';
 export const SPEED_MATH_VERSION=1;
 export const FORMULA_PHOTO='./references/speed-math-formula.jpg';
 export const techniques=[
@@ -13,7 +15,8 @@ export const techniques=[
  {id:'subtraction',name:'减法凑整',group:'巧算',rule:'减去接近整百的数，先减整百，再把多减的补回来。',example:'642－198＝642－200＋2＝444',pitfall:'多减要加回；如果减数比整百大，就还要再减。'},
  {id:'multiply-split',name:'化乘为加',group:'巧算',rule:'把一个因数拆成整十数和个位，分别乘完再相加。',example:'24×17＝24×10＋24×7＝240＋168＝408',pitfall:'拆开的每一部分都要乘，不能漏掉个位的乘积。'},
  {id:'percent-product',name:'百分数乘法',group:'应用',rule:'先看能不能换成熟悉的分数，比如12.5%＝1/8，25%＝1/4。',example:'640×12.5%＝640÷8＝80',pitfall:'25%是0.25，不是25；最后按题目精度处理。'},
- {id:'estimate-choice',name:'看选项定精度',group:'应用',rule:'选项差得远可以先估；差得近要保留更多数字，并检查舍入方向。',example:'27%与37%很好区分；27.1%与27.2%就要细算。',pitfall:'“差得远”要看具体差距，粗估值靠近两个选项中间时仍需提高精度。'}
+ {id:'estimate-choice',name:'看选项定精度',group:'应用',rule:'选项差得远可以先估；差得近要保留更多数字，并检查舍入方向。',example:'27%与37%很好区分；27.1%与27.2%就要细算。',pitfall:'“差得远”要看具体差距，粗估值靠近两个选项中间时仍需提高精度。'},
+ ...appliedTechniques
 ];
 export const fractionTable=[2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10,10.5,11,12,13,14,15,16,17,18,19,20,2.7,2.4].map(d=>({denominator:d,precision:d===16?2:[2,2.5,4,5,10,20,2.7,2.4].includes(d)?0:1,coarse:d===2.7||d===2.4}));
 const byId=new Map(techniques.map(t=>[t.id,t]));
@@ -35,6 +38,7 @@ export function gradeMathAnswer(question,value){const normalized=normalizeMathIn
 
 export function makeMathQuestion(category,p){
  if(!byId.has(category))throw new Error('Unknown technique');
+ if(isAppliedTechnique(category))return makeAppliedQuestion(category,p,roundedRatio);
  let prompt='',n=0,d=1,precision=0,rounding=false,unit='',hint='',steps=[],memory='',note='',options;
  const technique=byId.get(category),a=p.a,b=p.b;
  if(category==='multiply-shortcut'){
@@ -85,7 +89,7 @@ export function makeMathQuestion(category,p){
  const answer=rounding?roundedRatio(n,d,precision):exactRatio(n,d),key=category+':'+JSON.stringify(p);
  return {id:key,key,category,params:p,kind:options?'choice':'numeric',prompt,answer,unit,precision,rounding,numerator:n,denominator:d,hint,steps,memory,pitfall:technique.pitfall,note,options};
 }
-function parameters(category,random,level){const applied=level==='applied';switch(category){
+function parameters(category,random,level){if(isAppliedTechnique(category))return appliedParameters(category,random,level);const applied=level==='applied';switch(category){
  case'multiply-shortcut':return{a:integer(random,applied?101:20,applied?9999:500),factor:pick([15,11,9],random)};
  case'divide-shortcut':return{a:integer(random,applied?101:10,applied?9999:1500),b:pick([5,25,125],random)};
  case'fraction-percent':case'percent-fraction':return{index:integer(random,0,fractionTable.length-1)};
@@ -109,6 +113,23 @@ export function buildMathRound({categories=techniques.map(t=>t.id),size=10,seed=
 
 export function emptyMathWorkspace(){return{schemaVersion:1,events:[],session:null};}
 export function mathMistakes(events){const latest=new Map();for(const event of events)if(event.outcome!=='skipped')latest.set(event.question.key,event);return [...latest.values()].filter(e=>e.outcome==='wrong'||e.outcome==='viewed'||e.hintUsed).reverse();}
+// Review intervals are a product default, not a claim that one answer proves mastery.
+// A calendar day is always Asia/Shanghai; repeating within one day cannot advance it.
+const reviewDays=[1,3,7,14,30];
+const dayFormatter=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'});
+const studyDay=at=>dayFormatter.format(new Date(at));
+const plusDays=(day,count)=>new Date(Date.parse(day+'T00:00:00Z')+count*86400000).toISOString().slice(0,10);
+export function mathReviewSchedule(events,now=new Date().toISOString()){
+ const rows=new Map();
+ for(const e of [...events].sort((a,b)=>Date.parse(a.at)-Date.parse(b.at))){
+  if(e.outcome==='skipped')continue;const day=studyDay(e.at),old=rows.get(e.question.key),success=e.outcome==='correct'&&!e.hintUsed;
+  let stage=old?.stage??0,lastAdvance=old?.lastAdvance??null;
+  if(!success){stage=0;lastAdvance=day;}else if(lastAdvance!==day&&(!old||day>=old.dueDate)){stage=Math.min((old?.stage??-1)+1,reviewDays.length-1);lastAdvance=day;}
+  const dueDate=success&&old&&lastAdvance!==day?old.dueDate:plusDays(day,reviewDays[stage]);
+  rows.set(e.question.key,{question:e.question,stage,dueDate,lastAdvance,lastPracticed:day,needsRecall:!success,independentDays:[...new Set([...(old?.independentDays??[]),...(success?[day]:[])])]});
+ }
+ const currentDay=studyDay(now);return [...rows.values()].map(r=>({...r,due:r.dueDate<=currentDay,independentDays:r.independentDays.length})).sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+}
 export function mathStatistics(events){return techniques.map(technique=>{const rows=events.filter(e=>e.question.category===technique.id),independent=rows.filter(e=>!e.hintUsed&&['correct','wrong'].includes(e.outcome)),correct=independent.filter(e=>e.outcome==='correct').length;return{...technique,seen:rows.length,attempts:independent.length,correct,rate:independent.length?correct/independent.length:null,averageMs:independent.length?Math.round(independent.reduce((s,e)=>s+e.elapsedMs,0)/independent.length):null,needsWork:rows.filter(e=>e.outcome==='wrong'||e.outcome==='viewed'||e.hintUsed).length};});}
 export function recordMathEvent(workspace,event){if(workspace.events.some(e=>e.id===event.id))return workspace;return{...workspace,events:[...workspace.events,event].slice(-1000)};}
 function validQuestion(q){try{return!!q&&byId.has(q.category)&&q.params&&makeMathQuestion(q.category,q.params).answer===q.answer&&makeMathQuestion(q.category,q.params).key===q.key;}catch{return false;}}

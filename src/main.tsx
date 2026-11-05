@@ -9,4 +9,6 @@ class PageRecovery extends React.Component<{children:React.ReactNode},{failed:bo
  static getDerivedStateFromError(){return {failed:true};}
  render(){return this.state.failed?<main className="page-recovery" role="alert"><h1>这一页暂时没有打开</h1><p>网站更新或网络中断可能影响页面加载。已保存的练习和笔记仍保留在当前设备。</p><button className="button primary" onClick={reloadLatest}>重新载入当前页</button><button className="button outline" onClick={()=>{const target=new URL(location.href);target.hash='/today';target.searchParams.set('refresh',String(Date.now()));location.replace(target.href);}}>回到学习工作台</button></main>:this.props.children;}
 }
-createRoot(document.getElementById('root')!).render(<React.StrictMode><PageRecovery><App/></PageRecovery></React.StrictMode>);
+const container=document.getElementById('root')! as HTMLElement&{__growthRoot?:ReturnType<typeof createRoot>};
+const root=container.__growthRoot??(container.__growthRoot=createRoot(container));
+root.render(<React.StrictMode><PageRecovery><App/></PageRecovery></React.StrictMode>);
