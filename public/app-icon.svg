@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+<defs><linearGradient id="tile" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#37685b"/><stop offset="1" stop-color="#173e36"/></linearGradient><linearGradient id="leaf" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#d9dfae"/><stop offset="1" stop-color="#a9c88d"/></linearGradient></defs>
+<rect x="8" y="8" width="240" height="240" rx="55" fill="url(#tile)"/>
+<rect x="17" y="17" width="222" height="222" rx="47" fill="none" stroke="#e3dfbd" stroke-opacity=".18" stroke-width="1.5"/>
+<circle cx="179" cy="68" r="16" fill="#d4aa70"/>
+<path d="M45 124Q85 113 128 140Q171 113 211 124V193Q168 184 128 208Q88 184 45 193Z" fill="#102d29" opacity=".25" transform="translate(0 5)"/>
+<path d="M45 119Q88 110 128 137V201Q88 178 45 187Z" fill="#f5eedb"/>
+<path d="M211 119Q168 110 128 137V201Q168 178 211 187Z" fill="#e5dec7"/>
+<path d="M128 198V115Q129 88 154 69" fill="none" stroke="#91b47c" stroke-width="6" stroke-linecap="round"/>
+<path d="M128 124Q94 123 88 88Q122 88 128 124Z" fill="url(#leaf)"/>
+<path d="M133 103Q130 67 165 57Q174 89 133 103Z" fill="url(#leaf)"/>
+<path d="M63 142Q85 142 108 153M63 158Q86 159 108 169M148 153Q170 142 193 142M148 169Q170 158 193 158" fill="none" stroke="#9c9d7d" stroke-opacity=".6" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -51,6 +51,7 @@ export function QuestionTutorial({record,onNavigate,onReference,selectedAnswer='
  const remainder=leadMatch?fullBody.slice(leadMatch[0].length).trim():fullBody;
  return <section className="question-tutorial study-teaching" aria-label="这题怎么判断">
   <header><BookOpen size={21}/><div><span className="eyebrow">理解，再记住</span><h3>这题怎么判断</h3></div></header>
+  {q.answerVerificationStatus==='book-key'&&<p className="study-content-note">{q.answerSourceNote||'本题按上传题册答案与解析核对；不代表已逐条核验现行官方法规。'}</p>}
   {!precise&&<div className="study-teaching-pending"><strong>这道题的逐项讲解还未核验完成</strong><p>目前只能对照题册参考答案查看选项差异，不能据此断定你是粗心、没记住，或某条法规没掌握。</p>{knowledgeId&&<button className="button outline" onClick={()=>navigateStudy(onNavigate,'guided-review',{lesson:knowledgeId})}>学习已核对的对应知识点 <ArrowUpRight size={15}/></button>}</div>}
   {leadMatch&&<article className="study-decision">{text(leadMatch[1])}</article>}
   {!leadMatch&&precise&&q.explanation?.keyCondition&&<article className="study-decision"><strong>先抓住这个条件</strong><p>{q.explanation.keyCondition}</p></article>}

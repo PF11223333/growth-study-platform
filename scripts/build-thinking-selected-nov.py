@@ -1,0 +1,51 @@
+import pathlib,json,re,sys
+sys.stdout.reconfigure(encoding='utf-8')
+ROOT=pathlib.Path(__file__).resolve().parents[1];OUT=ROOT/'output/materials-20261105';SID='source-adaa1c70c42f855e5cb0b163';DATE='2026-11-05'
+items=[
+ {'page':68,'number':1,'chapter':8,'section':'刑事案件能力','key':'criminal','answerPage':81,'answer':'D','title':'案发先后能不能直接证明仇怨关系','memory':'事实说明发生了什么，动机还要找证据；先后顺序不能单独证明针对谁。','optionsWhy':['电闸被人为断开，为熟悉位置或事先踩点提供侦查方向，但仍应调查核实。','未翻财物、作案目标集中，为矛盾方向提供线索；不能把学习判断直接当司法定案结论。','直接到卧室、未搜寻其他房间，为熟悉环境的方向提供线索。','先杀谁只描述作案顺序，不能推出与女主人无直接关系；这是把有限事实推成排他结论。']},
+ {'page':82,'number':1,'chapter':9,'section':'群众工作能力','key':'public','answerPage':97,'answer':'D','title':'组织动员和入户宣传不是一类任务','memory':'组织动员是在把人组织起来；宣传教育是在把道理和方法讲明白。','optionsWhy':['民警与网格员配合，把基层力量用于共同治理，属于组织协作。','吸纳退休党员和热心群众进入调解队伍，直接体现组织群众。','成立反诈骗志愿者服务队，是把社会力量组织为工作队伍。','入户介绍技防设施是宣传教育，本题问“不属于组织动员”，因此选D；不是说入户宣传不好。']},
+ {'page':82,'number':2,'chapter':9,'section':'群众工作能力','key':'public','answerPage':97,'answer':'A','title':'群众协助上牌，不等于获得拦截权限','memory':'宣传、指引、协助可以发动群众；强制拦截不能靠一句发动来授权。','optionsWhy':['安排保安拦截未上牌车辆，把服务动员变成限制通行，题册据此判为不宜。','志愿者协助服务，符合便民和发动群众参与的任务。','居民委员会多渠道解释流程，可降低信息障碍。','在醒目位置公布信息，能让居民了解时间、地点和要求。']},
+ {'page':82,'number':3,'chapter':9,'section':'群众工作能力','key':'public','answerPage':97,'answer':'B','title':'题眼是广泛发动社会力量','memory':'选项单看都像好事，也要对准题目真正问的任务。','optionsWhy':['民警带辅警宣传，主体仍主要是警务力量，不如B直接体现广泛发动社会力量。','协调文艺骨干和志愿者共同开展宣传，直接回应社会力量与宣传教育两个条件。','落实寄递实名和报告可疑情况属于行业管理、防范，与本题宣传动员的重点不同。','与法院联合普法是部门协作，针对本题的社会力量动员不如B直接。']},
+ {'page':82,'number':4,'chapter':9,'section':'群众工作能力','key':'public','answerPage':97,'answer':'A','title':'噪声投诉处置：稳定情绪、协调、解决、反馈','memory':'先稳住可能升级的矛盾，再协调解决问题，处理结果及时反馈，后续再教育。','overrideOptions':{'A':'②①③⑤④','B':'②③①④⑤','C':'④③①⑤②','D':'④①②③⑤'},'optionsWhy':['题册顺序为先安抚、找门栋长协助、联系车主关闭、反馈结果、再批评教育，按具体场景组织协同。','先后协同与反馈环节与题册最佳序列不一致；特别是已处理的结果要及时反馈。','先批评教育，后安抚情绪，未优先稳定当前矛盾。','同样把批评教育放首位，容易错过安抚和制止升级的时机。']},
+ {'page':82,'number':5,'chapter':9,'section':'群众工作能力','key':'public','answerPage':97,'answer':'A','title':'群众参与要自愿，也要适合岗位','memory':'把已有网格力量组织好；不把自愿参与写成强制摊派。','optionsWhy':['网格员熟悉辖区，以其为骨干组建团队对应现有力量不足的问题。','不能笼统鼓励所有老年人参加需要应急处置能力的小组，应考虑人员能力与岗位条件。','“要求”业委会成员夜间巡逻缺少自愿、能力等条件，不是恰当的普遍做法。','要求企业出资容易变成摊派，不能为筹设备绕过自愿和合法程序。']},
+ {'page':98,'number':2,'chapter':10,'section':'情报信息能力','key':'information','answerPage':127,'answer':'B','title':'异常报警线索：时间先于爆炸，还透露具体威胁','memory':'早知道、知道得具体，是重点核实的线索；重点关注不等于直接认定有罪。','overridePrompt':'2025年6月5日20时06分，宏光小区突发一起爆炸警情。警方将其立为刑事案件侦查。根据下列接报警记录，应重点关注的报警人是：（2026年国考）\n\n李某：20:02，宏光小区5号楼2单元，“有异味，疑似煤气泄漏”。\n王某：20:04，宏光小区2号楼3单元，“有人要炸死我，快来救我”。\n张某：20:07，宏光小区5号楼4单元，“发生爆炸，请民警核实”。\n陈某：20:09，宏光小区1号楼1单元，“爆炸了，有煤气味”。','overrideOptions':{'A':'李某','B':'王某','C':'张某','D':'陈某'},'optionsWhy':['提前闻到异味是值得核实的现场信息，但内容不如王某透露具体人为威胁。','在爆炸前两分钟说“有人要炸死我”，同时具备提前知情和具体威胁，应重点核实。','报警在爆炸之后，内容与一般目击信息相符。','同样在爆炸后报警，需调查，但本题优先关注的是更异常的王某。']},
+ {'page':128,'number':1,'chapter':11,'section':'公安勤务能力','key':'patrol','answerPage':151,'answer':'D','title':'巡逻方式要和区域特点配套','memory':'巡逻先看范围、道路、人流和接触需要，不要先挑交通工具再找理由。','overridePrompt':'根据不同管辖区域的特点及治安状况，巡逻工作中采取徒步巡逻、非机动车巡逻、机动车辆巡逻各有优势。原图列有经济开发区、新建住宅区、古城区、政府机关办公地、大型商业区、文化娱乐区。最适宜采取徒步巡逻的区域是：（2018年多省联考；原示意图可在作答后查看）','overrideOptions':{'A':'古城区、新建住宅区、文化娱乐区、大型商业区','B':'政府机关办公地、文化娱乐区、经济开发区、大型商业区','C':'古城区、新建住宅区、经济开发区、政府机关办公地','D':'古城区、政府机关办公地、大型商业区、文化娱乐区'},'optionsWhy':['与D相比用新建住宅区替换了政府机关办公地，题册结合图示未将其列为本题最佳组合。','经济开发区范围与巡防需求更适合机动覆盖，本题组合不如D。','同时包含经济开发区、新建住宅区，缺少题册强调的商娱重点区域组合。','按本题图示与题册答案，古城、政务、商娱重点区适宜细致观察、接触群众的徒步巡防。结论限于本题，不等于所有同名区域一律使用同一种巡逻方式。']},
+ {'page':152,'number':2,'chapter':12,'section':'应急处突能力','key':'emergency','answerPage':161,'answer':'D','title':'风险评估先收集资料，再分析分级定对策','memory':'没有资料先别分级：收集、分析、分级、对策。','overrideOptions':{'A':'①②③④','B':'②④①③','C':'③②①④','D':'④①②③'},'optionsWhy':['把收集资料放到最后，前面的分析分级就缺少依据。','先分级后收集资料，是先下结论再找事实。','先确定对策再了解风险，颠倒工作顺序。','④收集资料→①分析研究→②风险分级→③确定对策，前一步为后一步提供依据。']},
+ {'page':152,'number':3,'chapter':12,'section':'应急处突能力','key':'emergency','answerPage':161,'answer':'D','title':'风险度看乘积，不只看危害听起来多大','memory':'题目给了公式，就按可能性乘危害性；不能被事件名称吓得跳过计算。','overridePrompt':'某县举办石榴节，对开幕式现场进行风险评估。表中规定：风险度＝可能性×危害性。以下为原图各事件的两项分值：暴雨等自然灾害3、1；看台质量问题1、3；烟花事故2、3；消防安全事故1、2；设备故障2、1；演员健康状况1、1；观众失控1、3；恐怖袭击1、4。根据本表，风险度最大的突发事件是：（2019年公安联考）','overrideOptions':{'A':'暴雨等自然灾害','B':'观众失控','C':'恐怖袭击','D':'烟花事故'},'optionsWhy':['3×1＝3；发生频繁，但表中危害性分值为1。','1×3＝3；不能只看到危害性3而漏掉可能性1。','1×4＝4；危害性最高，但乘积仍小于烟花事故。','2×3＝6，为本表最大值；比较的是题设风险度，不是一般印象。']},
+ {'page':152,'number':4,'chapter':12,'section':'应急处突能力','key':'emergency','answerPage':161,'answer':'B','title':'塔吊事故：救人之前也要防二次伤害','memory':'保护生命是目标，控制仍在发展的现场危险是救援能够安全展开的条件。','optionsWhy':['财产转移不是本题优先目标，而且进入危险区域可能增加伤害。','题册选划警戒线、控制现场，着眼于事故现场仍可能存在的坠落和二次伤害风险。','原因调查是后续工作，不能替代先期控制和救援。','抢救伤者十分重要，但本题强调现场未安全时先建立控制条件，再组织救援；这不是遇到伤员都要等待的绝对规则。']},
+ {'page':162,'number':1,'chapter':13,'section':'警务技能','key':'skills','answerPage':171,'answer':'C','title':'遭受袭击时先控制风险，不要盲目升级','memory':'把安全距离和依法适度控制放在前面，不因情绪升级，也不把群众推入危险。','optionsWhy':['题设警员处于被袭击的不利位置，立即贴近搏斗增加受伤风险。','直接与对方拼腿脚，没有充分利用距离与已有装备的防护优势。','题册选择先后撤、保持距离并使用警械震慑，体现保护自身并依法控制风险。','组织无关群众参与制服，可能使群众面临不必要危险。']},
+ {'page':162,'number':2,'chapter':13,'section':'警务技能','key':'skills','answerPage':171,'answer':'C','title':'持续暴力攻击：制止要有效，措施要相称','memory':'不是一直劝，也不是马上用枪；先核对危险程度和法定使用条件。','optionsWhy':['已出现持续拳打脚踢，仅反复劝说不足以有效制止正在发生的攻击。','直接攻击致命部位，超过题设所显示的必要处置限度。','题册选择取出警棍并警告，强调有效制止、措施相称和明确警告。','题设未说明达到使用武器的条件，不能把一般暴力攻击自动升级为开枪威胁。']}
+]
+rows=[]
+for x in items:
+ text=json.loads((OUT/'ocr/police-thinking'/f"{x['page']}.json").read_text(encoding='utf8'))['text']
+ text=re.sub(r'\n\s*\d{1,3}\s*$','',text)
+ matches=list(re.finditer(r'(?m)^\s*(\d{1,3})[.．、]?',text));m=next((m for m in matches if int(m.group(1))==x['number']),None)
+ if x['page']==82 and x['number']==4:prompt=''
+ elif 'overridePrompt' in x:prompt=x['overridePrompt']
+ else:
+  assert m,x;following=next((k for k in matches if k.start()>m.start() and int(k.group(1))==x['number']+1),None);seg=text[m.end():following.start() if following else len(text)]
+  a=re.search(r'(?m)^A',seg);assert a,x;prompt=re.sub(r'\s+','',seg[:a.start()]);prompt=prompt.replace('室内客厅）','室内客厅，').replace('拦裁','拦截').replace('宜传','宣传').replace('停五节','第五节').replace('甲身高体壮／先动手推操','甲身高体壮，先动手推搡')
+ if 'overrideOptions' in x:options=x['overrideOptions']
+ else:
+  following=next((k for k in matches if k.start()>m.start() and int(k.group(1))==x['number']+1),None);seg=text[m.end():following.start() if following else len(text)]
+  om=list(re.finditer(r'(?m)^([A-D])[.．、]?\s*',seg));assert len(om)>=4,x
+  options={o.group(1):re.sub(r'\s+','',seg[o.end():om[j+1].start() if j+1<len(om) else len(seg)]) for j,o in enumerate(om[:4])}
+  options={k:v.replace('楼摔','搂摔').replace('腿端','腿踹').replace('馨械','警械').replace('震摄','震慑').replace('拦裁','拦截').replace('宜传','宣传') for k,v in options.items()}
+ if x['page']==82 and x['number']==4:
+  prompt='9月23日22时18分，居民在“微邻里”实名认证网格群反映电动车报警器未关，影响休息。有居民扬言踢坏电动车，还有人往楼下扔东西险些伤人。网格员报警后，民警处理措施顺序最恰当的是：（2019年四川省考）\n①沟通门栋长，请他帮助处理；②请网格员安抚居民情绪；③联系车主关掉报警器；④张贴告示对楼上扔东西的行为批评教育；⑤把处理结果反馈到“微邻里”。'
+ refs=[dict(sourceId=SID,page=x['page'],label='原题与手写笔记；本轮不自动判定历史选择',regions=[]),dict(sourceId=SID,page=x['answerPage'],label='本节卷末单选答案表',regions=[])]
+ id=f"nov-20261105-thinking-{x['key']}-s{x['number']:02d}";chapterid=f"nov-20261105-thinking-chapter-{x['chapter']:02d}"
+ why={k:dict(text=t,status='原题与卷末答案已人工对照；解释为编写',basis=[]) for k,t in zip('ABCD',x['optionsWhy'])}
+ body='## 大白话抓住关键\n\n'+x['memory']+'\n\n## 逐项看\n\n'+'\n\n'.join(k+'：'+v['text'] for k,v in why.items())+'\n\n## 答案与解释来自哪里\n\n字母答案已对照本节卷末答案表；以上逐项说明是依据本题情境编写，不冒充老师逐字解析或官方法规原文。涉及执法措施时，还须依法核对职权、条件、程序和适用版本。原页红蓝笔迹完整保留，本轮未将其自动记为个人历史错题。'
+ q=dict(origin='source-scan',type='single',prompt=prompt,options=options,referenceAnswer=x['answer'],verifiedText=True,textStatus='visual-transcription',requiresImage=False,hideOriginalUntilAnswer=True,answerVerificationStatus='book-key',answerSourceNote=f"题册本节卷末答案表（PDF第{x['answerPage']}页），非官方试卷答案发布。",optionExplanations=why,explanation=dict(category=x['title'],keyCondition=x['memory'],memory=x['memory'],diagnosis='对照题干所问任务、限制条件和逐项说明，选择自己的实际错因；不自动判断为粗心。',legalBasis=[]),tutorial=dict(version=1,authored=dict(key=id,title=x['title'],origin='依据题干和题册答案编写',scope='本题逐项',verifiedAt=DATE,body=body,sources=[]),materials=[]),originalPages=[dict(sourceId=SID,page=x['page'],width=1414,height=2000,region=dict(x=0,y=0,w=1,h=1),previewSuffix='-hd')],sourceAudit=dict(checkedAt=DATE,imageStatus='available',textStatus='已对照原图及答案表',scope='只核对本题；原表或图转写另保留原页'),gradingExcluded=False)
+ if x['key']=='skills':
+  law=json.loads((ROOT/'scripts/nov-material-official-evidence.json').read_text(encoding='utf8'))['weapons']
+  basis=[dict(title=law['title'],url=law['url'],article=a['article'],quote=a['quote'],version=law['version'],verifiedAt=DATE,effectiveDate=law['effectiveDate'],verification='司法部国家行政法规库及横琴法律事务局同文已打开核对') for a in law['articles']]
+  q['explanation']['legalBasis']=basis;q['tutorial']['authored']['sources']=basis
+  q['tutorial']['authored']['body']+='\n\n## 官方法规原文（已核对）\n\n'+'\n\n'.join('**'+a['article']+'**\n\n'+a['quote'] for a in basis)+'\n\n[打开国家行政法规库全文]('+law['url']+')。版本：'+law['version']+'。其中第九条还要求判明法定暴力犯罪紧急情形，通常经警告无效；不能仅凭警械使用条件推定武器使用条件。'
+  for opt in q['optionExplanations'].values():opt['basis']=basis;opt['status']='相关法规已核对；本题分析为编写'
+  refs.append(dict(url=law['url'],label=law['title']+' · 官方原文核对于'+DATE))
+ rows.append(dict(id=id,kind='practice',origin='materials-20261105',legacyId=id,title=x['section']+' · '+x['title'],subject='gongan',topic=x['section'],date=DATE,tags=['2027新资料','公安思维提升',x['section']],body=prompt,sourceRefs=refs,links=[chapterid],revision=1,verificationStatus='原题与卷末答案已对照；逐项解释为编写',studyQuestion=dict(bank='police-thinking-20261105',chapter=x['chapter']-7,chapterName=x['section'],sectionId=x['key'],sectionName=x['section'],type='single',number=x['number'],referenceAnswer=x['answer'],promptPreview=prompt[:180],gradingExcluded=False,needsConfirmation=False,historicalWrong=False,historicalCorrect=False,knowledgeKey=id),details=dict(question=q)))
+(OUT/'thinking-selected-records.json').write_text(json.dumps(rows,ensure_ascii=False,indent=2)+'\n',encoding='utf8')
+print(json.dumps({'selectedQuestions':len(rows),'bySection':{s:sum(r['topic']==s for r in rows) for s in sorted({r['topic'] for r in rows})}},ensure_ascii=False))

@@ -1,4 +1,4 @@
-$ErrorActionPreference = 'Stop'
+﻿$ErrorActionPreference = 'Stop'
 $projectRoot = Split-Path -Parent $PSScriptRoot
 $address = 'http://127.0.0.1:4186'
 try { $health = Invoke-RestMethod "$address/api/health" -TimeoutSec 2 } catch { $health = $null }
