@@ -1,4 +1,5 @@
 import ReactMarkdown from 'react-markdown';
+import type {MouseEvent} from 'react';
 import remarkGfm from 'remark-gfm';
 import {BookOpen,ArrowUpRight} from 'lucide-react';
 import type {RecordItem,SourceRef} from './types';
@@ -46,6 +47,12 @@ export function QuestionTutorial({record,onNavigate,onReference,selectedAnswer='
  const originals=[...new Map((t.materials||[]).flatMap((material:any)=>material.sourceRefs||[]).filter((ref:SourceRef)=>ref.sourceId).map((ref:SourceRef)=>[`${ref.sourceId}:${ref.page}`,ref])).values()] as SourceRef[];
  const knowledgeId=record.details?.guidedLessonId||record.details?.guidedSourceAudit?.lessonId;
  const text=(body:string)=><Text body={body} onNavigate={onNavigate} onReference={onReference}/>;
+ const sourceLink=(href:string)=>href.startsWith('#/')?{href,onClick:(event:MouseEvent<HTMLAnchorElement>)=>{
+  if(event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+  event.preventDefault();const [route,query]=href.slice(2).split('?'),params=new URLSearchParams(query||'');
+  if(route.startsWith('source/')&&onReference)onReference({sourceId:route.slice(7),page:Number(params.get('page'))||1});
+  else navigateStudy(onNavigate,route,Object.fromEntries(params));
+ }}:{href,target:'_blank',rel:'noreferrer'};
  const fullBody=String(authored?.body||'');
  const leadMatch=specific?fullBody.match(/^\s*##?\s*本题怎样判断\s*\n([\s\S]*?)(?=\n##?\s|$)/):null;
  const remainder=leadMatch?fullBody.slice(leadMatch[0].length).trim():fullBody;
@@ -58,13 +65,13 @@ export function QuestionTutorial({record,onNavigate,onReference,selectedAnswer='
   {options.length>0&&<section className="tutorial-options study-option-explanations" aria-label="逐项解析"><h4>逐项看，为什么选、为什么不选</h4>{options.map(([letter,note])=>{
    const expected=reference.includes(letter),chosen=selectedAnswer.includes(letter);
    const label=showJudgment?expected?(chosen?'选对了':'应选，未选'):(chosen?'选了，应排除':'应排除'):'';
-   return <article key={letter} className={showJudgment&&chosen!==expected?'study-option-gap':''}><div className="study-explanation-title"><b>{letter}</b><strong>{readableOption(q.options?.[letter])?q.options[letter]:`原题 ${letter} 选项`}</strong>{label&&<span>{label}</span>}</div><p>{note.text}</p>{!!note.basis?.length&&<div className="study-option-basis">{note.basis!.map((basis:any,i:number)=>basis.url?<a key={i} href={basis.url} target="_blank" rel="noreferrer">{basis.title}{basis.article?` · ${basis.article}`:''}<ArrowUpRight size={12}/></a>:<span key={i}>{basis.title}{basis.article?` · ${basis.article}`:''}</span>)}</div>}</article>;
+   return <article key={letter} className={showJudgment&&chosen!==expected?'study-option-gap':''}><div className="study-explanation-title"><b>{letter}</b><strong>{readableOption(q.options?.[letter])?q.options[letter]:`原题 ${letter} 选项`}</strong>{label&&<span>{label}</span>}</div><p>{note.text}</p>{!!note.basis?.length&&<div className="study-option-basis">{note.basis!.map((basis:any,i:number)=>basis.url?<a key={i} {...sourceLink(basis.url)}>{basis.title}{basis.article?` · ${basis.article}`:''}<ArrowUpRight size={12}/></a>:<span key={i}>{basis.title}{basis.article?` · ${basis.article}`:''}</span>)}</div>}</article>;
   })}</section>}
   {options.length>0&&options.length<Object.keys(q.options||{}).length&&<p className="study-content-note">其余选项的独立推理尚未核验，暂不补写通用结论。</p>}
   {specific&&remainder&&<details className="study-deep-lesson"><summary>再讲明白一点：大白话、例子与教材原文</summary><article className="tutorial-lesson"><h4>{authored.title}</h4><p className="tutorial-provenance">{authored.origin}{authored.verifiedAt?` · 核验日期 ${authored.verifiedAt}`:''}</p>{text(remainder)}</article></details>}
-  {precise&&sources.length>0&&<section className="tutorial-sources study-law-sources"><h4>对应法规与出处</h4>{sources.map((source:any,i:number)=><article key={i}><a href={source.url} target="_blank" rel="noreferrer"><strong>{source.title}{source.article||source.articles?` · ${source.article||source.articles}`:''}</strong><ArrowUpRight size={14}/></a>{source.quote&&<blockquote>{source.quote}</blockquote>}<p>{source.verification||source.note||''}{source.effective?` · 适用版本：${source.effective}`:''}</p></article>)}</section>}
+  {precise&&sources.length>0&&<section className="tutorial-sources study-law-sources"><h4>对应法规与出处</h4>{sources.map((source:any,i:number)=><article key={i}><a {...sourceLink(source.url)}><strong>{source.title}{source.article||source.articles?` · ${source.article||source.articles}`:''}</strong><ArrowUpRight size={14}/></a>{source.quote&&<blockquote>{source.quote}</blockquote>}<p>{source.verification||source.note||''}{source.effective?` · 适用版本：${source.effective}`:''}</p></article>)}</section>}
   {precise&&originals.length>0&&<div className="study-original-links"><h4>教材与题本原页</h4><div className="tutorial-originals">{originals.slice(0,3).map((ref,i)=><button className="chip" key={i} onClick={()=>onReference?onReference(ref):navigateStudy(onNavigate,`source/${ref.sourceId}`,{page:String(ref.page||1)})}><BookOpen size={14}/>{ref.label||'原资料'} · PDF 第 {ref.page||1} 页</button>)}</div></div>}
-  {!specific&&authored&&<details className="study-related-reading"><summary>{precise?'补充知识讲解':'关联资料，供补学时参考'} · {authored.title}</summary><p className="tutorial-provenance">{authored.origin} · {authored.scope}{authored.verifiedAt?` · 资料核验日期 ${authored.verifiedAt}`:''}</p>{text(fullBody)}{!precise&&sources.length>0&&<div className="study-option-basis">{sources.map((source:any,i:number)=><a key={i} href={source.url} target="_blank" rel="noreferrer">{source.title} · {source.article||'来源'}<ArrowUpRight size={12}/></a>)}</div>}</details>}
+  {!specific&&authored&&<details className="study-related-reading"><summary>{precise?'补充知识讲解':'关联资料，供补学时参考'} · {authored.title}</summary><p className="tutorial-provenance">{authored.origin} · {authored.scope}{authored.verifiedAt?` · 资料核验日期 ${authored.verifiedAt}`:''}</p>{text(fullBody)}{!precise&&sources.length>0&&<div className="study-option-basis">{sources.map((source:any,i:number)=><a key={i} {...sourceLink(source.url)}>{source.title} · {source.article||'来源'}<ArrowUpRight size={12}/></a>)}</div>}</details>}
   {(t.materials||[]).map((material:any)=><details className="study-related-reading" key={material.id}><summary>资料卡 · {material.title}</summary><p className="tutorial-provenance">{material.provenance} · {material.verificationStatus}。沿用资料标注的核验日期。</p>{text(material.body)}<div className="tutorial-originals">{(material.sourceRefs||[]).filter((ref:SourceRef)=>ref.sourceId).map((ref:SourceRef,i:number)=><button className="chip" key={i} onClick={()=>onReference?onReference(ref):navigateStudy(onNavigate,`source/${ref.sourceId}`,{page:String(ref.page||1)})}><BookOpen size={14}/>{ref.label||'原资料'} · PDF 第 {ref.page||1} 页</button>)}</div><button className="text-link" onClick={()=>navigateStudy(onNavigate,`record/${material.id}`)}>打开完整资料卡 <ArrowUpRight size={14}/></button></details>)}
  </section>;
 }
