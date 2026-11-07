@@ -1,0 +1,43 @@
+name: Publish verified incremental reading edition
+on:
+  workflow_dispatch:
+    inputs:
+      base_tag:
+        required: true
+        type: string
+      patch_tag:
+        required: true
+        type: string
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: growth-pages
+  cancel-in-progress: false
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch verified base and changed files
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+          BASE_TAG: ${{ inputs.base_tag }}
+          PATCH_TAG: ${{ inputs.patch_tag }}
+        run: |
+          gh release download "$BASE_TAG" --pattern 'site.zip.part*' --dir base
+          cat base/site.zip.part* > base/site.zip
+          gh release download "$PATCH_TAG" --pattern 'site.delta.zip' --dir patch
+          python scripts/site-bundle-delta.py apply --base-zip base/site.zip --patch-zip patch/site.delta.zip --output-directory site
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - name: Deploy only after all file hashes match
+        id: deployment
+        uses: actions/deploy-pages@v4
