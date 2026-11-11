@@ -41,3 +41,5 @@ jobs:
       - name: Deploy only after all file hashes match
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          timeout: 1500000
