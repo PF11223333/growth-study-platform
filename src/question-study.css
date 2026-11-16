@@ -18,6 +18,12 @@
 .study-surface .source-scan-viewport:focus-visible{outline:2px solid var(--accent,#9c4a34);outline-offset:3px}
 .study-surface .question-source-crop{position:relative;overflow:hidden;margin:0;border:0;min-height:0;max-width:none;background:white}
 .study-surface .question-source-crop img{position:absolute;top:0;height:auto;max-width:none;display:block;user-select:none}
+.study-surface .practice-image{display:block;width:100%;border-radius:3px}
+.practice-image-scroll{display:block;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
+.practice-zoom{min-height:44px;margin-block:8px}
+.study-surface .question-option:has(.practice-image){grid-template-columns:auto minmax(0,1fr) auto}
+.study-surface .question-option>span:has(.practice-image){display:block;min-width:0;width:100%}
+.study-surface .question-option:has(.practice-image) .practice-image{margin-block:3px}
 .study-scan-loading{position:absolute;inset:0;display:grid;place-items:center;font-size:14px;color:var(--muted,#74786b);background:#f6f4ed;z-index:1}
 .study-scan-page figcaption{display:flex;justify-content:space-between;gap:10px;padding:10px 2px;font-size:12px;color:var(--muted,#74786b);align-items:center}
 .study-scan-page figcaption .text-link{font-size:12px;min-height:30px}

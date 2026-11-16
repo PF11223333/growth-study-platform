@@ -6,6 +6,8 @@ const labels={
  'police-thinking-pages-20261106':'思维提升 · 原页自测组',
  'xingce-tutorial':'行测原上传教程',
  'knowledge-quizzes':'已有知识自测',
+ 'police-original-20261116':'公安原创情景与法规练习',
+ 'police-official-2027':'2027公安专业科目官方样题',
  reinforcement:'自编巩固新题',uploaded:'手动录入题目',
 };
 export function practiceBanks(records,subject=''){
