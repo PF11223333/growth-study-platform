@@ -107,14 +107,15 @@ function makeRows(){
 }
 
 const args=process.argv.slice(2);
+const refreshing=args.includes('--refresh-surfaces');
 const file=args.find(a=>!a.startsWith('--'));
 assert.ok(file,'Provide the rendered surface candidate path.');
 const candidate=JSON.parse(fs.readFileSync(file,'utf8'));
 const db=read();
 assert.equal(db.version,candidate.version,'数据已变化，请重新生成题面候选。');
-const rows=makeRows();
-assert.equal(rows.length,160);
-assert.equal(new Set(rows.map(r=>r.id)).size,160);
+const rows=refreshing?[]:makeRows();
+assert.equal(rows.length,refreshing?0:160);
+assert.equal(new Set(rows.map(r=>r.id)).size,rows.length);
 for(const topic of new Set(rows.map(r=>r.topic))){
  const chapter=rows.filter(r=>r.topic===topic);
  assert.equal(chapter.filter(r=>r.studyQuestion.type==='single').length,10);
@@ -128,6 +129,7 @@ for(const record of db.records){
  if(!result)continue;
  assert.equal(record.revision,result.revision,record.id);
  const q=record.details.question,s=record.studyQuestion;
+ const before=JSON.stringify([q,s]);
  installed.add(record.id);
  const lesson=existingTeaching[record.id];
  let practiceSurface=result.surface;
@@ -146,13 +148,17 @@ for(const record of db.records){
    const {context,contextClips}=practiceSurface||{};
    practiceSurface={stem:lesson.prompt,options:Object.fromEntries(Object.entries(opts).map(([k,text])=>[k,{text}])),...(context?{context}:{}),...(contextClips?{contextClips}:{})};
   }
-  oldLessons++;
+  if(!refreshing)oldLessons++;
  }
  q.practiceSurfaceAudit={checkedAt:date,status:practiceSurface?'ready':'pending',reason:practiceSurface?'':result.reason,
   method:practiceSurface?.stem?'已校对文稿结构复查':'按卷内题号、四选项和干净版面定位'};
  assetsCheck(practiceSurface,record.id);
  if(practiceSurface){
   q.practiceSurface=practiceSurface;
+  if(s.practiceSurfacePending){
+   delete q.practiceSurfaceHold;
+   delete s.practiceSurfacePending;
+  }
   ready++;
  }else{
   delete q.practiceSurface;
@@ -166,18 +172,21 @@ for(const record of db.records){
   const answerRef=record.sourceRefs.find(ref=>/答案表|卷末答案|最终答案勘误/.test(ref.label||''));
   if(answerRef&&/^[A-D]{1,4}$/.test(q.referenceAnswer||'')&&!q.errata&&!q.answerConflict)q.bookAnswer=q.referenceAnswer;
  }
- record.revision++;
+ if(JSON.stringify([q,s])!==before)record.revision++;
 }
 assert.equal(installed.size,Object.keys(candidate.rows).length);
 const oldIds=new Set(db.records.map(r=>r.id));
 assert.ok(rows.every(r=>!oldIds.has(r.id)));
 db.records.push(...rows);
-const result={ready,pending,oldLessons,originalAdded:rows.length,counts:candidate.counts};
+const previousReport=path.join(ROOT,'output/reports/police-practice-20261116-install.json');
+const earlier=refreshing?JSON.parse(fs.readFileSync(previousReport,'utf8')):{};
+const result={ready,pending,oldLessons:oldLessons+(earlier.oldLessons||0),
+ originalAdded:rows.length+(earlier.originalAdded||0),counts:candidate.counts};
 if(args.includes('--write')){
  assert.equal(read().version,candidate.version,'平台数据已变化');
  const snapshot=backup();
  write(db);
- atomic(path.join(ROOT,'output/reports/police-practice-20261116-install.json'),{...result,version:db.version,snapshot});
+ atomic(previousReport,{...result,version:db.version,snapshot});
 }
 console.log(JSON.stringify(result));
 

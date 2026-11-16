@@ -25,6 +25,11 @@ OPTION = re.compile(r"^([ABCD])(?:[.．、:：)）\s]+|(?=[\u3400-\u9fff]))\s*(\
 ANSWER = re.compile(r"^(?:[【\[（(]\s*)?(?:(?:参考|正确|标准|原书|书后|题册|本题)?答案|(?:试题|参考|本题)?解析|桐哥提示|勘误|订正)(?:[】\]）)\s：:]|$)|^[0-9]{1,3}[.．、]\s*[A-D]{1,4}\s*$", re.I)
 VISUAL = re.compile(r"如下图|下图|上图|此图|图中|图示|见图|配图|地图|图例|标记点|下表|上表|如下表|表格|统计图|流程图|示意图|图[一二三四1-9]")
 LAYOUT_HEADER = re.compile(r"^桐哥讲公专$|^小题狂刷(?:20\d\d)?[（(]|^\d{1,3}$")
+SECTION_HEADER = re.compile(
+    r"^(?:(?:[（(][一二三四五六七八九十\d]+[）)]|[一二三四五六七八九十]+[、.])\s*)?"
+    r"(?:根据(?:以下|下列|所给|材料)|请根据|阅读(?:以下|下列)|情[境景]材料|"
+    r"(?:单项|多项|不定项)选择题|判断题|材料[一二三四五六七八九十\d]+[：:])"
+)
 PLACEHOLDER = re.compile(r"请对照原页|请查看原页|选项未识别|选项见上方|识别失败|^待[核补确]")
 
 
@@ -93,6 +98,17 @@ def clip(page, rows):
                            h=round(min(1,high+.004)-y,6))}
 
 
+def stem_clips(entries):
+    # OCR boxes for consecutive printed lines may overlap slightly at their
+    # edges. A single continuous block per page avoids cutting or repeating
+    # parts of those lines.
+    pages = {}
+    for page, row in entries:
+        _, rows = pages.setdefault(page["page"], (page, []))
+        rows.append(row)
+    return [clip(page, rows) for page, rows in pages.values()]
+
+
 def clean_page_exists(page):
     return (ROOT / "data/previews" / page["sourceId"] / f'{page["page"]}-clean.webp').is_file()
 
@@ -142,7 +158,7 @@ def single_question_scan(q, study):
     stem, options, current = [], {}, ""
     for p, row in rows[indices[0]:]:
         text = row[0]
-        if ANSWER.match(text) or (QUESTION.match(text) and (stem or options)):
+        if ANSWER.match(text) or (QUESTION.match(text) and (stem or options)) or (options and SECTION_HEADER.match(text)):
             break
         match = OPTION.match(text)
         if match:
@@ -150,6 +166,8 @@ def single_question_scan(q, study):
             if current in options:
                 return None, "选项分栏或边界待核"
             options[current] = []
+        elif current and (row[2]+row[4])/2 > p["region"]["y"]+p["region"]["h"]+.004:
+            break
         (options[current] if current else stem).append((p,row))
     if set(options) != set(LETTERS) or not stem:
         return None, "未确认完整的 A–D 四个选项"
@@ -163,15 +181,12 @@ def single_question_scan(q, study):
     all_text = " ".join(row[0] for _, row in stem+sum(options.values(),[]))
     if VISUAL.search(all_text) or re.search(r"(?:^|\s)[A-D][.．、:：]", " ".join(row[0] for _, row in options["D"][1:])):
         return None, "图表或版式需要独立核对"
-    def clip_rows(entries):
-        return [clip(p,[row]) for p,row in entries]
     context, case_reason = stage_context(q,study)
     if case_reason:
         return None, case_reason
-    # Ensure there is no other OCR row inside the actual rectangle between rows.
-    # Each option uses independent line clips so a right column is never included in a vertical crop.
-    return {"stemClips":clip_rows(stem), **context,
-            "options":{letter:{"clips":[clip(p,[r]) for p,r in selected]} for letter,selected in options.items()}}, ""
+    # Crop each option independently, including when several options share a row.
+    return {"stemClips":stem_clips(stem), **context,
+            "options":{letter:{"clips":[clip(p,[r]) for p,r in options[letter]]} for letter in LETTERS}}, ""
 
 
 def stage_context(q, study):
@@ -187,7 +202,9 @@ def stage_context(q, study):
     if not source_pages or any(not clean_page_exists(p) for p in source_pages):
         return {}, "共享情景题面待核"
     for p in source_pages:
-        selected = [r for r in line_span(p,padding=0) if not re.search(r"^(?:\([一二三四五六七八九十]+\)|材料[一二三四五六七八九十])?\s*根据以下.{0,15}回答",r[0])]
+        selected = [r for r in line_span(p,padding=0) if not (
+            SECTION_HEADER.match(r[0]) and re.search(r"回答.{0,18}题",r[0])
+        )]
         if not selected or any(QUESTION.search(r[0]) or OPTION.search(r[0]) or ANSWER.search(r[0]) or VISUAL.search(r[0]) for r in selected):
             return {}, "共享材料与相邻小题或图表的边界待核"
         found.append(clip(p,selected))
