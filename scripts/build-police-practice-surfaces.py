@@ -98,15 +98,17 @@ def clip(page, rows):
                            h=round(min(1,high+.004)-y,6))}
 
 
-def stem_clips(entries):
+def stem_clips(entries, figures=()):
     # OCR boxes for consecutive printed lines may overlap slightly at their
     # edges. A single continuous block per page avoids cutting or repeating
     # parts of those lines.
-    pages = {}
+    blocks = []
     for page, row in entries:
-        _, rows = pages.setdefault(page["page"], (page, []))
-        rows.append(row)
-    return [clip(page, rows) for page, rows in pages.values()]
+        if (not blocks or blocks[-1][0]["page"]!=page["page"] or
+                figures and row[2]-blocks[-1][1][-1][4]>.026):
+            blocks.append((page,[]))
+        blocks[-1][1].append(row)
+    return [clip(page, rows) for page, rows in blocks]
 
 
 def clean_page_exists(page):
@@ -136,11 +138,22 @@ def visible_ink(surface):
     return False
 
 
-def single_question_scan(q, study):
+def inside_figure(clip_page, row, images):
+    for image in images:
+        if (image["sourceId"],image["page"])!=(clip_page["sourceId"],clip_page["page"]):
+            continue
+        region=image["region"]
+        baseline=(row[2]+row[4])/2
+        if region["y"]+.003 <= baseline <= region["y"]+region["h"]-.003 and region["x"]-.01 <= (row[1]+row[3])/2 <= region["x"]+region["w"]+.01:
+            return True
+    return False
+
+
+def single_question_scan(q, study, figures=(), context_figures=()):
     pages = q.get("originalPages") or []
     if not pages or len(pages)>3 or any(not clean_page_exists(p) for p in pages):
         return None, "缺少可核对的干净底图"
-    rows = [(p, row) for p in pages for row in line_span(p,.015)]
+    rows = [(p, row) for p in pages for row in line_span(p,.015) if not inside_figure(p,row,figures)]
     rows.sort(key=lambda item: (item[0]["page"], item[1][2], item[1][1]))
     prefix = normalized(q.get("prompt") or "")[:9]
     number = str(study.get("originalNumber") or study.get("number") or "")
@@ -179,19 +192,19 @@ def single_question_scan(q, study):
     if not stem or any(not entries for entries in options.values()):
         return None, "题干与选项重叠，需核对印刷位置"
     all_text = " ".join(row[0] for _, row in stem+sum(options.values(),[]))
-    if VISUAL.search(all_text) or re.search(r"(?:^|\s)[A-D][.．、:：]", " ".join(row[0] for _, row in options["D"][1:])):
+    if (not figures and VISUAL.search(all_text)) or re.search(r"(?:^|\s)[A-D][.．、:：]", " ".join(row[0] for _, row in options["D"][1:])):
         return None, "图表或版式需要独立核对"
-    context, case_reason = stage_context(q,study)
+    context, case_reason = stage_context(q,study,context_figures)
     if case_reason:
         return None, case_reason
     # Crop each option independently, including when several options share a row.
-    return {"stemClips":stem_clips(stem), **context,
+    return {"stemClips":stem_clips(stem,figures), **context,
             "options":{letter:{"clips":[clip(p,[r]) for p,r in options[letter]]} for letter in LETTERS}}, ""
 
 
-def stage_context(q, study):
+def stage_context(q, study, figures=()):
     context = q.get("fullContextText") or q.get("contextText")
-    if q.get("contextTextVerified") and usable(context) and not VISUAL.search(context):
+    if q.get("contextTextVerified") and usable(context) and (figures or not VISUAL.search(context)):
         return {"context":context}, ""
     if study.get("groupType")=="case" and not study.get("caseGroupId") and not q.get("contextPages"):
         return {}, "缺少可用的情景组定位"
@@ -205,25 +218,28 @@ def stage_context(q, study):
         selected = [r for r in line_span(p,padding=0) if not (
             SECTION_HEADER.match(r[0]) and re.search(r"回答.{0,18}题",r[0])
         )]
-        if not selected or any(QUESTION.search(r[0]) or OPTION.search(r[0]) or ANSWER.search(r[0]) or VISUAL.search(r[0]) for r in selected):
+        selected=[r for r in selected if not inside_figure(p,r,figures)]
+        if not selected and any(c["page"]==p["page"] for c in figures):
+            continue
+        if not selected or any(QUESTION.search(r[0]) or OPTION.search(r[0]) or ANSWER.search(r[0]) or (not figures and VISUAL.search(r[0])) for r in selected):
             return {}, "共享材料与相邻小题或图表的边界待核"
-        found.append(clip(p,selected))
+        found.extend(stem_clips([(p,r) for r in selected],figures))
     return {"contextClips":found}, ""
 
 
-def surface(q,study):
+def surface(q,study,figures=(),context_figures=()):
     opts = q.get("options") or {}
     prompt = q.get("prompt") or ""
     suspects = "\n".join([prompt,q.get("fullContextText") or q.get("contextText") or "",*(str(opts.get(k,"")) for k in LETTERS)])
     # Text-authoring pipelines already split one question. Nonetheless, require
     # real option text and reject unsplit numbering/explicit answer cues.
     if (q.get("verifiedText") or q.get("textVerified")) and usable(prompt) and all(usable(opts.get(k)) for k in LETTERS):
-        if VISUAL.search(suspects) or re.search(r"(?:图|表)\s*[：:]",suspects):
+        if not (figures or context_figures) and (VISUAL.search(suspects) or re.search(r"(?:图|表)\s*[：:]",suspects)):
             return None, "原题图表需要独立裁片"
-        context, reason = stage_context(q,study)
+        context, reason = stage_context(q,study,context_figures)
         if not reason:
             return {"stem":prompt,"options":{k:{"text":opts[k]} for k in LETTERS},**context}, ""
-    return single_question_scan(q,study)
+    return single_question_scan(q,study,figures,context_figures)
 
 
 def main():

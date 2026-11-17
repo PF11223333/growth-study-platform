@@ -11,8 +11,21 @@ export function verify(db=read(),out=path.join(ROOT,'dist')){
  // allow publishing a question that will render as a missing image.
  const practicePreviews=new Set();
  for(const r of db.records.filter(r=>!r.archived)){
-  const q=r.details?.question;if(!q)continue;
-  for(const p of [...(q.originalPages||[]),...(q.contextPages||[])]){
+  const q=r.details?.question;if(!q||typeof q!=='object')continue;
+  const visual=q.practiceVisuals;
+  const figureClips=[...(visual?.question||[]),...(visual?.context||[])];
+  if(visual?.status==='ready'&&!figureClips.length)problems.push(`已核对题图没有区域 ${r.id}`);
+  if(visual?.status==='pending'&&(!q.gradingExcluded||!r.studyQuestion?.gradingExcluded))problems.push(`待核图题仍可判分 ${r.id}`);
+  if(r.subject==='gongan'&&r.kind==='practice'&&!r.studyQuestion?.groupOnly&&q.requiresImage&&!figureClips.length&&!q.gradingExcluded)
+   problems.push(`公安图表题缺图且仍可判分 ${r.id}`);
+  const surface=q.practiceSurface;
+  const surfaceClips=[...(surface?.stemClips||[]),...(surface?.contextClips||[]),...Object.values(surface?.options||{}).flatMap(option=>option.clips||[])];
+  for(const p of [...surfaceClips,...figureClips]){
+   const {x,y,w,h}=p.region||{};
+   if(![x,y,w,h].every(Number.isFinite)||x<0||y<0||w<=0||h<=0||x+w>1.00001||y+h>1.00001||!['-clean','-hd'].includes(p.previewSuffix))
+    problems.push(`刷题图裁切坐标无效 ${r.id} ${p.sourceId}/${p.page}`);
+  }
+  for(const p of [...(q.originalPages||[]),...(q.contextPages||[]),...surfaceClips,...figureClips]){
    const key=`${p.sourceId}/${p.page}${p.previewSuffix??'-clean'}`;if(practicePreviews.has(key))continue;practicePreviews.add(key);
    if(!sources.has(p.sourceId))problems.push(`刷题图片来源缺失 ${r.id} ${key}`);
    for(const base of [DATA,out])if(!fs.existsSync(path.join(base,'previews',p.sourceId,`${p.page}${['','-hd','-clean'].includes(p.previewSuffix)?p.previewSuffix:'-clean'}.webp`)))problems.push(`${base===DATA?'本地':'公开'}刷题原页图缺失 ${key} (${r.id})`);

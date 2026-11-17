@@ -10,15 +10,15 @@ import {eligiblePracticeRows,matchesPracticeType} from './practice-order.mjs';
 import {practiceCountLabel} from './practice-banks.mjs';
 import * as api from './api';
 import {GuidedContextEntry} from './GuidedReview';
-import {hidePoliceSourcesDuringPractice,needsPolicePracticeSurface,type PolicePracticeSurface,type PracticeClip} from './police-practice';
+import {hidePoliceSourcesDuringPractice,needsPolicePracticeSurface,type PolicePracticeSurface,type PracticeClip,type PracticeVisuals} from './police-practice';
 import './question-study.css';
 const typeNames:Record<string,string>={single:'单项选择',multi:'多项选择',case:'情境题'};
 type ImageStatus='loaded'|'loading'|'failed';
 function PracticeImage({clip,label,attempt,enlarged,onStatus}:{clip:PracticeClip;label:string;attempt:number;enlarged:boolean;onStatus:(status:ImageStatus)=>void}){
  const {x,y,w,h}=clip.region;
  const width=`${Math.ceil(clip.width*w*.72)}px`;
- return <span className="practice-image-scroll"><span className="question-source-crop practice-image" style={{width:enlarged?width:undefined,maxWidth:enlarged?undefined:width,aspectRatio:`${clip.width*w} / ${clip.height*h}`}}>
-  <img src={`./previews/${clip.sourceId}/${clip.page}-clean.webp${attempt?`?retry=${attempt}`:''}`} style={{width:`${100/w}%`,left:`${-x/w*100}%`,transform:`translateY(${-y*100}%)`}} alt={label} onLoad={()=>onStatus('loaded')} onError={()=>onStatus('failed')}/>
+ return <span className="practice-image-scroll" tabIndex={enlarged?0:undefined} aria-label={enlarged?`${label}，可左右滚动`:undefined}><span className="question-source-crop practice-image" style={{width:enlarged?width:undefined,maxWidth:enlarged?undefined:width,aspectRatio:`${clip.width*w} / ${clip.height*h}`}}>
+  <img src={`./previews/${clip.sourceId}/${clip.page}${clip.previewSuffix}.webp${attempt?`?retry=${attempt}`:''}`} style={{width:`${100/w}%`,left:`${-x/w*100}%`,transform:`translateY(${-y*100}%)`}} alt={label} onLoad={()=>onStatus('loaded')} onError={()=>onStatus('failed')}/>
  </span></span>;
 }
 function ScanPage({page,scale,label,imageKey,onStatus,onReference}:{page:any;scale:number;label:string;imageKey:string;onStatus:(key:string,status:ImageStatus)=>void;onReference:(ref:SourceRef)=>void}){
@@ -75,11 +75,16 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  const scanned=q.origin==='source-scan'||!['generated','official-sample'].includes(q.origin)&&String(study.bank||'').startsWith('police-');
  const protectedOriginal=needsPolicePracticeSurface(record),hideSource=hidePoliceSourcesDuringPractice(record);
  const surface:PolicePracticeSurface|undefined=protectedOriginal?q.practiceSurface:undefined;
+ const visuals:PracticeVisuals|undefined=q.practiceVisuals;
+ const visualMissing=visuals?.status==='pending'||!!q.requiresImage&&protectedOriginal&&!visuals?.question.length&&!visuals?.context.length;
  const [imageRetry,setImageRetry]=useState(0),[enlarged,setEnlarged]=useState(false);
  const clipKey=(part:string,i:number)=>`${imageRetry}:${part}:${i}`;
  const clipParts=surface?Object.entries({...Object.fromEntries(Object.entries(surface.options).map(([letter,option])=>[letter,option.clips])),stem:surface.stemClips,context:surface.contextClips}):[];
- const clipIds=clipParts.flatMap(([part,clips])=>(clips||[]).map((_:PracticeClip,i:number)=>clipKey(part,i)));
+ const visualParts=Object.entries({questionFigure:visuals?.question,contextFigure:visuals?.context});
+ const imageKeys=(entries:typeof visualParts)=>entries.flatMap(([part,clips])=>(clips||[]).map((_,i)=>clipKey(part,i)));
+ const visualKeys=imageKeys(visualParts),clipIds=[...imageKeys(clipParts),...visualKeys];
  const showClips=(clips:PracticeClip[]|undefined,part:string,label:string)=>clips?.map((clip,i)=><PracticeImage key={clipKey(part,i)} clip={clip} label={label} attempt={imageRetry} enlarged={enlarged} onStatus={status=>onImageStatus(clipKey(part,i),status)}/>);
+ const showFigures=(clips:PracticeClip[]|undefined,part:string,label:string)=>!!clips?.length&&<figure className="practice-figures"><figcaption>{label}</figcaption>{showClips(clips,part,label)}</figure>;
  const pages=Array.isArray(q.originalPages)?q.originalPages:[],contextPages=Array.isArray(q.contextPages)?q.contextPages:[];
  const letters=q.type==='recall'?[]:[...new Set(['A','B','C','D',...Object.keys(q.options||{}).filter(key=>/^[A-D]$/.test(key))])].sort();
  const verifiedText=q.verifiedText===true||q.textVerified===true||q.readingAvailability==='verified-text'||['generated','manual','imported-quiz','official-sample'].includes(q.origin);
@@ -87,9 +92,10 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  const completeText=completeQuestionText&&(!contextPages.length||q.contextTextVerified===true&&readableOption(q.fullContextText||q.contextText));
  const neededImages=[...pages.map((_:any,i:number)=>`question:${i}`),...contextPages.map((_:any,i:number)=>`context:${i}`)];
  const imageFailed=neededImages.some(key=>imageStates[key]==='failed'),imagesLoaded=pages.length>0&&neededImages.every(key=>imageStates[key]==='loaded');
- const readingReady=protectedOriginal?!!surface&&clipIds.every(key=>imageStates[key]==='loaded'):q.requiresImage?imagesLoaded:(!scanned||completeText||imagesLoaded);
+ const visualReady=visualKeys.length>0&&visualKeys.every(key=>imageStates[key]==='loaded');
+ const readingReady=!visualMissing&&(protectedOriginal?!!surface&&clipIds.every(key=>imageStates[key]==='loaded'):visualKeys.length?visualReady:q.requiresImage?imagesLoaded:(!scanned||completeText||imagesLoaded));
  const conflict=!!q.answerConflict&&!q.answerConflictResolved;
- const exclusion=readOnlyStudy||q.gradingExcluded||study.gradingExcluded||conflict||protectedOriginal&&!surface;
+ const exclusion=readOnlyStudy||q.gradingExcluded||study.gradingExcluded||conflict||visualMissing||protectedOriginal&&!surface;
  const exclusionReason=(readOnlyStudy?'本轮为原页自测，只核对教材与讲解，不写入对错统计。':'')||q.gradingExclusionReason||q.gradingExcludedReason||study.gradingExclusionReason||(conflict?'本题存在答案差异，需先核对依据。':'这道题的题目或参考答案尚未核对完整。');
  const canGrade=!study.groupOnly&&!exclusion&&readingReady&&!studyOnly;
  const chosen=selected.join(''),correct=canGrade?gradeQuestion(q,chosen,rating):null;
@@ -120,13 +126,12 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
  return <section className="question-study study-surface">
   <div className="question-study-tools">{!onNext&&<button className="text-link" onClick={()=>study.bank==='xingce-tutorial'?navigate('xingce',{section:study.xingceSection||String(study.sectionId||'').replace(/^xingce-/, '')||'data'}):study.bank?navigate(`bank/${study.bank}`,{chapter:String(study.chapter||''),section:study.sectionId||''}):navigate('drill')}><ChevronLeft size={16}/>按原册查题</button>}{!hideSource&&record.sourceRefs?.some(ref=>ref.sourceId)&&<button className="chip" onClick={onOriginal}><BookOpen size={15}/>原页与我的笔迹</button>}</div>
   <div className="study-question-heading"><strong>{study.groupOnly?'原页组 · 不计分':typeLabel}</strong>{q.origin==='generated'?<span>原创巩固题</span>:q.origin==='official-sample'?<span>官方大纲样题</span>:study.number&&!study.groupOnly?<span>原册第 {study.originalNumber||study.number} 题</span>:null}</div>
-  {(exclusion||!hasAnswer)&&<aside className="study-grade-notice" role="status"><AlertCircle size={19}/><div><strong>待核对，本题暂不判分</strong><p>{protectedOriginal&&!surface?'独立题面待核对，可在答后查看原页。':!hasAnswer?'校准答案待核对。':exclusionReason}</p><span>查看资料或跳过，不会增加作答次数与错题。</span></div></aside>}
+  {(exclusion||!hasAnswer)&&<aside className="study-grade-notice" role="status"><AlertCircle size={19}/><div><strong>待核对，本题暂不判分</strong><p>{visualMissing?'本题的原图或图表待核对。可打开下方核对说明查看原页。':protectedOriginal&&!surface?'独立题面待核对，可在答后查看原页。':!hasAnswer?'校准答案待核对。':exclusionReason}</p><span>查看资料或跳过，不会增加作答次数与错题。</span></div></aside>}
   {study.groupOnly&&q.pageGroup&&<aside className="study-content-note"><strong>{q.pageGroup.label} · 原册{q.pageGroup.questionCount}道题</strong><p>本组题目在 PDF 第 {q.pageGroup.startPage}—{q.pageGroup.endPage} 页。下方只展示起页，请打开原页后连续翻页，保留完整情景。</p><p>{q.pageGroup.rangeNote}</p><button className="button outline" onClick={()=>openReference({sourceId:q.pageGroup.sourceId,page:q.pageGroup.startPage})}>从本组起页开始阅读 <BookOpen size={15}/></button></aside>}
-  {surface&&(surface.context||surface.contextClips?.length)?<details className="study-case-context" open><summary><span>{study.caseTitle||'共用情景材料'}</span>{study.caseCount>1&&<small>第 {study.caseIndex||1} / {study.caseCount} 小题</small>}</summary>{surface.context&&<div className="study-context-text preserve">{surface.context}</div>}{showClips(surface.contextClips,'context','情景材料')}</details>:null}
   {clipIds.length>0&&<button type="button" aria-pressed={enlarged} className="chip practice-zoom" onClick={()=>setEnlarged(value=>!value)}>{enlarged?<ZoomOut size={15}/>:<ZoomIn size={15}/>} {enlarged?'适合屏幕':'放大题图'}</button>}
+  {(surface?.context||surface?.contextClips?.length||visuals?.context.length)?<details className="study-case-context" open><summary><span>{study.caseTitle||'共用情景材料'}</span>{study.caseCount>1&&<small>第 {study.caseIndex||1} / {study.caseCount} 小题</small>}</summary>{surface?.context&&<div className="study-context-text preserve">{surface.context}</div>}{showClips(surface?.contextClips,'context','情景材料')}{showFigures(visuals?.context,'contextFigure','共用材料原图与图表')}</details>:null}
   {surface?.stem&&<p className="question-prompt preserve">{surface.stem}</p>}
   {showClips(surface?.stemClips,'stem','本题题干与图表')}
-  {clipIds.some(key=>imageStates[key]==='failed')&&<button className="button outline" onClick={()=>setImageRetry(v=>v+1)}>重新加载题图</button>}
   {!protectedOriginal&&<>
   {(contextPages.length>0||q.contextText||q.fullContextText)&&<details className="study-case-context" open><summary><span>{study.caseTitle||'本组共用的情景材料'}</span>{study.caseCount>1&&<small>第 {study.caseIndex||1} / {study.caseCount} 小题</small>}</summary>{contextPages.length>0&&<OriginalScan pages={contextPages} kind="context" previewNote={q.previewNote} onStatus={onImageStatus} onReference={openReference}/>} {(q.fullContextText||q.contextText)&&(!scanned||verifiedText)&&<div className="study-context-text preserve">{q.fullContextText||q.contextText}</div>}</details>}
   {pages.length>0&&(!q.hideOriginalUntilAnswer||reveal)&&<OriginalScan pages={pages} number={study.originalNumber||study.number} previewNote={q.previewNote} onStatus={onImageStatus} onReference={openReference}/>}
@@ -135,6 +140,8 @@ export function QuestionStudy({record,onOriginal,onNavigate,onNext,onResult,init
   {imageFailed&&completeText&&<p className="study-content-note">{q.requiresImage?'本题需要图形信息，原图加载完整后才可判分。':'原图暂时无法加载，以下为已核对的完整文字版，可据此作答。'}</p>}
   {(displayText||!scanned)&&<p className="question-prompt preserve">{q.prompt||'题干尚未完整录入。'}</p>}
   </>}
+  {showFigures(visuals?.question,'questionFigure','本题原图与图表')}
+  {clipIds.some(key=>imageStates[key]==='failed')&&<div className="study-scan-error" role="alert"><strong>题图未完整加载</strong><button className="button outline" onClick={()=>setImageRetry(v=>v+1)}>重新加载题图</button></div>}
   {protectedOriginal&&!surface?null:q.type==='recall'?<p className="study-content-note">{study.groupOnly?'这一组请在纸上或心里逐题作答，再打开原册答案表核对；本入口不记录对错或掌握次数。':'先自己说出答案和理由，再展开核对；开放题通过自评安排复习。'}</p>:<fieldset className="study-choice-fieldset"><legend>{q.type==='single'?'请选择一个答案':'请选择答案，可选多项'}</legend><div className="question-options">{letters.map(letter=>{
    const selectedHere=selected.includes(letter),showGrade=reveal&&canGrade&&hasAnswer,expectedHere=expected.includes(letter);
    const optionText=protectedOriginal?surface?.options[letter]?.text:(verifiedText||!scanned)&&readableOption(q.options?.[letter])?q.options[letter]:`选择 ${letter}`;

@@ -19,6 +19,9 @@
 .study-surface .question-source-crop{position:relative;overflow:hidden;margin:0;border:0;min-height:0;max-width:none;background:white}
 .study-surface .question-source-crop img{position:absolute;top:0;height:auto;max-width:none;display:block;user-select:none}
 .study-surface .practice-image{display:block;width:100%;border-radius:3px}
+.study-surface .practice-figures{min-width:0;margin:16px 0;padding:12px;border:1px solid var(--line,#dedbd2);border-radius:8px;background:#fff}
+.study-surface .practice-figures figcaption{margin:0 0 8px;font-size:14px;font-weight:600;color:var(--study-green)}
+.study-surface .practice-figures .practice-image-scroll+.practice-image-scroll{margin-top:10px}
 .practice-image-scroll{display:block;max-width:100%;overflow-x:auto;overscroll-behavior-x:contain}
 .practice-zoom{min-height:44px;margin-block:8px}
 .study-surface .question-option:has(.practice-image){grid-template-columns:auto minmax(0,1fr) auto}

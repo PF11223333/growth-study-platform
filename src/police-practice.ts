@@ -1,8 +1,9 @@
 import type {RecordItem, Region} from './types';
 
 export type PracticeClip = {
- sourceId:string; page:number; width:number; height:number; region:Region; previewSuffix:'-clean';
+ sourceId:string; page:number; width:number; height:number; region:Region; previewSuffix:'-clean'|'-hd';
 };
+export type PracticeVisuals = {status:'ready'|'pending'; question:PracticeClip[]; context:PracticeClip[]};
 export type PolicePracticeSurface = {
  stem?:string;
  stemClips?:PracticeClip[];
