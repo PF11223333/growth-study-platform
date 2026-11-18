@@ -1,9 +1,11 @@
 import {validateGuidedBundle} from './install-guided.mjs';
 import {validateVocabulary} from './validate-vocabulary.mjs';
 import {validateWritingGuide} from './validate-writing.mjs';
+import {publicStore} from './export.mjs';
 import fs from'node:fs';import path from'node:path';import{fileURLToPath}from'node:url';import{ROOT,DATA,read,hash,validateRecord}from'../server/store.mjs';
 function walk(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):[path.join(dir,e.name)]);}
 export function verify(db=read(),out=path.join(ROOT,'dist')){
+ db=publicStore(db);
  const problems=[],ids=new Set(),sources=new Map(db.sources.map(s=>[s.id,s]));let pages=0,bytes=0;
  for(const r of db.records){if(ids.has(r.id))problems.push(`重复 ID ${r.id}`);ids.add(r.id);if(!r.archived)try{validateRecord(r,db,r);}catch(e){problems.push(`${r.title}：${e.message}`);}for(const ref of r.sourceRefs||[])if(ref.sourceId&&!sources.has(ref.sourceId))problems.push(`来源缺失 ${r.id}`);}
  for(const s of db.sources){const f=path.join(DATA,'originals',s.filename);if(!fs.existsSync(f)){if(!s.missing)problems.push(`原文件缺失 ${s.title}`);continue;}if(hash(fs.readFileSync(f))!==s.sha256)problems.push(`原文件哈希不匹配 ${s.title}`);const m=path.join(DATA,'previews',s.id,'manifest.json');if(!fs.existsSync(m)){problems.push(`未生成预览 ${s.title}`);continue;}const manifest=JSON.parse(fs.readFileSync(m,'utf8'));if(manifest.pages.length!==s.pageCount)problems.push(`页数不一致 ${s.title}`);for(const p of manifest.pages){pages++;for(const suffix of ['.webp','-hd.webp'])if(!fs.existsSync(path.join(out,'previews',s.id,p.page+suffix)))problems.push(`公开预览缺失 ${s.id}/${p.page}${suffix}`);}}
