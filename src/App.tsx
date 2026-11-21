@@ -1,4 +1,4 @@
-import {createContext,lazy,Suspense,useContext,useEffect,useLayoutEffect,useRef,useState}from'react';
+import {createContext,lazy,Suspense,useCallback,useContext,useEffect,useLayoutEffect,useRef,useState}from'react';
 import{ArrowUpRight,ArrowRight,BookOpen,Check,ChevronLeft,ChevronRight,Clock,FileText,Layers,Leaf,Menu,Plus,Search,Settings,Upload,Sun,RefreshCw,Link2,ExternalLink,Bookmark,Download,CheckCircle2,MoreHorizontal,X,PenLine,LoaderCircle,CalendarDays,Target,Home,CloudUpload,RotateCcw}from'lucide-react';
 import ReactMarkdown from'react-markdown';import remarkGfm from'remark-gfm';
 import * as api from'./api';import type{Catalog,RecordItem,Source,SourceRef}from'./types';import{kinds,subjects,today}from'./types';import{Editor}from'./Editor';import{Reader}from'./Reader';import{Growth}from'./Growth';
@@ -35,6 +35,21 @@ function Botanical(){return <svg className="botanical" viewBox="0 0 300 260" fil
 export default function App(){
  const [catalog,setCatalog]=useState<Catalog|null>(null),[loadError,setLoadError]=useState(''),[current,setCurrent]=useState(route),[editor,setEditor]=useState<Partial<RecordItem>|null>(null),[toast,setToast]=useState(''),[mobileMenu,setMobileMenu]=useState(false),[search,setSearch]=useState(''),[searchIds,setSearchIds]=useState<string[]|null>(null),[searchReady,setSearchReady]=useState(false),[searchError,setSearchError]=useState('');
  const worker=useRef<Worker|null>(null),seq=useRef(0);const [limit,setLimit]=useState(24);
+ const menuToggle=useRef<HTMLButtonElement>(null),menuClose=useRef<HTMLButtonElement>(null);
+ const closeNavigation=useCallback((destination:'toggle'|'content'='toggle')=>{
+  setMobileMenu(false);
+  requestAnimationFrame(()=>{
+   const target=destination==='toggle'?menuToggle.current:document.getElementById('main-content');
+   target?.focus({preventScroll:true});
+  });
+ },[]);
+ useLayoutEffect(()=>{if(mobileMenu)menuClose.current?.focus({preventScroll:true});},[mobileMenu]);
+ useEffect(()=>{
+  const narrow=window.matchMedia('(max-width: 768px)');
+  const onResize=()=>{if(!narrow.matches)setMobileMenu(false);};
+  narrow.addEventListener('change',onResize);
+  return()=>narrow.removeEventListener('change',onResize);
+ },[]);
  const refresh=async()=>{api.invalidate();if(worker.current){worker.current.terminate();worker.current=null;setSearchReady(false);setSearchIds(null);}const data=await api.bootstrap();setCatalog(data);};
  useEffect(()=>{refresh().catch(e=>setLoadError(e.message));const change=()=>{setCurrent(route());setMobileMenu(false);setLimit(pageLimits.get(location.hash)||24);setSearch(searchStates.get(location.hash)||'');};window.addEventListener('hashchange',change);return()=>window.removeEventListener('hashchange',change);},[]);
  useEffect(()=>{if(!toast)return;const timer=setTimeout(()=>setToast(''),4500);return()=>clearTimeout(timer);},[toast]);
@@ -42,24 +57,42 @@ export default function App(){
  useEffect(()=>{if(!search.trim()||!catalog)return;if(worker.current)return;const w=new Worker(new URL('./search.worker.ts',import.meta.url),{type:'module'});worker.current=w;w.onmessage=e=>{if(e.data.seq===seq.current)setSearchIds(e.data.ids);};api.searchIndex().then(data=>{w.postMessage({type:'init',data});setSearchReady(true);}).catch(e=>{setSearchError(e.message);w.terminate();worker.current=null;});},[search,catalog]);
  useEffect(()=>{if(!search.trim()){setSearchIds(null);return;}setSearchIds(null);if(!searchReady)return;const n=++seq.current;const timer=setTimeout(()=>worker.current?.postMessage({type:'query',query:search,seq:n}),120);return()=>clearTimeout(timer);},[search,searchReady]);
  useEffect(()=>()=>worker.current?.terminate(),[]);
- useEffect(()=>{const key=(e:KeyboardEvent)=>{if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('global-search')?.focus();}if(e.key==='Escape')setMobileMenu(false);};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[]);
+ useEffect(()=>{
+  const key=(e:KeyboardEvent)=>{
+   if(mobileMenu){if(e.key==='Escape'){e.preventDefault();closeNavigation();}return;}
+   if((e.ctrlKey||e.metaKey)&&e.key==='k'){e.preventDefault();document.getElementById('global-search')?.focus();}
+  };
+  window.addEventListener('keydown',key);
+  return()=>window.removeEventListener('keydown',key);
+ },[mobileMenu,closeNavigation]);
  if(loadError)return <div className="boot"><Leaf/><h1>暂时没能打开书桌</h1><p>{loadError}</p><button className="button primary" onClick={()=>location.reload()}>重新加载</button></div>;
  if(!catalog)return <div className="boot"><Leaf className="spin"/><p>正在打开你的学习书桌…</p></div>;
  const local=api.isLocal(),[page,id]=current.path.split('/'),params=current.params;const active=page==='drill'&&params.get('mode')==='wrong'?'wrong':page==='bank'?'drill':['record','source'].includes(page)?'library':page;const selectedSubject=params.get('subject')||'',selectedKind=params.get('kind')||'';
  const create=(kind='note',extras:Partial<RecordItem>={})=>setEditor({kind,subject:selectedSubject||'xingce',...extras});
  const notify=(m:string)=>setToast(m);
  const saved=async(r:RecordItem)=>{setEditor(null);await refresh();notify('已保存到电脑');go(`record/${r.id}`);};
- const openRecord=(r:RecordItem)=>{searchStates.set(location.hash,search);pageLimits.set(location.hash,limit);setSearch('');localStorage.setItem('growth-last-read',r.id);go(`record/${r.id}`,{from:current.path+(params.toString()?'?'+params.toString():'')});};
+ const openPage=(key:string)=>{setSearch('');if(mobileMenu)closeNavigation('content');go(key);};
+ const openRecord=(r:RecordItem)=>{
+  searchStates.set(location.hash,search);pageLimits.set(location.hash,limit);setSearch('');
+  try{localStorage.setItem('growth-last-read',r.id);}catch{/* Reading remains available when browser storage is unavailable. */}
+  go(`record/${r.id}`,{from:current.path+(params.toString()?'?'+params.toString():'')});
+ };
  const due=catalog.records.filter(r=>r.nextReview&&r.nextReview<=today());
  const localSearchIds=catalog.records.filter(r=>search.toLowerCase().trim().split(/\s+/).every(t=>[r.title,r.excerpt,r.topic,r.studyQuestion?.promptPreview,r.studyQuestion?.number].join(' ').toLowerCase().includes(t))).map(r=>r.id);
  const filtered=catalog.records.filter(r=>(!selectedSubject||r.subject===selectedSubject)&&(!selectedKind||r.kind===selectedKind)&&(!params.has('due')||due.includes(r))).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
  const list=(rows:RecordItem[],empty?:string)=><>{rows.length?<div className="record-grid">{rows.slice(0,limit).map(r=><RecordCard key={r.id} item={r} onOpen={()=>openRecord(r)}/>)}</div>:<Empty title={empty} action={local?()=>create():undefined}/>} {rows.length>limit&&<button className="button load-more" onClick={()=>{setLimit(limit+24);pageLimits.set(location.hash,limit+24);}}>再看 24 条 <ChevronRight size={16}/></button>}</>;
  const filters=(withKinds?:string[])=> <div className="filter-bar"><div className="tabs"><button className={!selectedSubject?'tab active':'tab'} onClick={()=>go(page,{...(selectedKind?{kind:selectedKind}:{}),...(params.has('due')?{due:'1'}:{})})}>全部</button>{Object.entries(subjects).filter(([k])=>page==='growth'||k!=='growth').map(([k,v])=><button key={k} className={selectedSubject===k?'tab active':'tab'} onClick={()=>go(page,{subject:k,...(selectedKind?{kind:selectedKind}:{}),...(params.has('due')?{due:'1'}:{})})}>{v}</button>)}</div>{withKinds&&<select aria-label="记录类型筛选" value={selectedKind} onChange={e=>go(page,{...(selectedSubject?{subject:selectedSubject}:{}),...(e.target.value?{kind:e.target.value}:{}),...(params.has('due')?{due:'1'}:{})})}><option value="">全部类型</option>{withKinds.map(k=><option value={k} key={k}>{kinds[k]}</option>)}</select>}</div>;
  return <DrillProvider catalog={catalog}><CatalogContext.Provider value={catalog}><div className="app-shell">
- <a href="#main-content" className="skip-link" onClick={e=>{e.preventDefault();document.getElementById('main-content')?.focus();}}>跳到主要内容</a>
- <aside className={`sidebar ${mobileMenu?'open':''}`}><a className="brand" href="#/today"><span className="brand-icon"><Leaf size={24} strokeWidth={1.4}/></span><span><strong>向内生长</strong><small>学习与复盘 · EST. 2026</small></span></a><div className="sidebar-label">学习与练习</div><nav>{menu.map(([key,label,en,Icon],i)=><button key={key} className={`nav-item ${active===key?'active':''}`} onClick={()=>{setSearch('');go(key);}}><Icon size={19} strokeWidth={1.5}/><span>{label}</span><small>0{i+1}</small></button>)}</nav><div className="sidebar-secondary"><div className="sidebar-label">知识与成长</div><nav>{secondaryMenu.map(([key,label,Icon])=><button key={key} className={`nav-item ${active===key?'active':''}`} onClick={()=>{setSearch('');go(key);}}><Icon size={18}/><span>{label}</span></button>)}</nav></div><div className="sidebar-bottom"><button className="nav-item" onClick={()=>{setSearch('');go('settings');}}><Settings size={18}/><span>{local?'设置与发布':'关于与更新'}</span></button><div className="mode"><span className={`status-dot ${local?'local':''}`}/>{local?'电脑管理版':'公开阅读版'}<small>{local?'本地保存':'自由阅读'}</small></div></div></aside>
- {mobileMenu&&<div className="sidebar-scrim" onClick={()=>setMobileMenu(false)}/>}
- <div className="main-shell"><header className="topbar"><button className="icon-button mobile-menu" aria-label="打开导航" onClick={()=>setMobileMenu(!mobileMenu)}><Menu size={21}/></button><div className="breadcrumb">我的空间 <span>/</span> {menu.find(m=>m[0]===active)?.[1]||secondaryMenu.find(m=>m[0]===active)?.[1]||'内容详情'}</div><label className="search-box"><Search size={17}/><input id="global-search" value={search} onChange={e=>{setSearch(e.target.value);setLimit(24);}} placeholder="搜题号、知识点、教材或笔记" aria-label="全站搜索"/>{search?<button className="icon-button" onClick={()=>setSearch('')} aria-label="清除搜索"><X size={14}/></button>:<kbd>Ctrl K</kbd>}</label>{local&&<button className="button dark quick-add" onClick={()=>create()}><Plus size={16}/><span>随手记</span></button>}<span className="avatar">生</span></header>
+ <a href="#main-content" className="skip-link" inert={mobileMenu} onClick={e=>{e.preventDefault();document.getElementById('main-content')?.focus();}}>跳到主要内容</a>
+ <aside id="site-navigation" className={`sidebar ${mobileMenu?'open':''}`} role={mobileMenu?'dialog':undefined} aria-modal={mobileMenu||undefined} aria-label="学习导航">
+  <div className="sidebar-header"><a className="brand" href="#/today" onClick={e=>{if(mobileMenu&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey&&!e.altKey){e.preventDefault();openPage('today');}}}><span className="brand-icon"><Leaf size={24} strokeWidth={1.4}/></span><span><strong>向内生长</strong><small>学习与复盘</small></span></a><button ref={menuClose} type="button" className="icon-button sidebar-close" aria-label="关闭导航" onClick={()=>closeNavigation()}><X size={22}/></button></div>
+  <div className="sidebar-label">学习与练习</div>
+  <nav aria-label="学习与练习">{menu.map(([key,label,,Icon])=><button key={key} className={`nav-item ${active===key?'active':''}`} aria-current={active===key?'page':undefined} onClick={()=>openPage(key)}><Icon size={19} strokeWidth={1.5}/><span>{label}</span></button>)}</nav>
+  <div className="sidebar-secondary"><div className="sidebar-label">知识与成长</div><nav aria-label="知识与成长">{secondaryMenu.map(([key,label,Icon])=><button key={key} className={`nav-item ${active===key?'active':''}`} aria-current={active===key?'page':undefined} onClick={()=>openPage(key)}><Icon size={18}/><span>{label}</span></button>)}</nav></div>
+  <div className="sidebar-bottom"><button className={`nav-item ${active==='settings'?'active':''}`} aria-current={active==='settings'?'page':undefined} onClick={()=>openPage('settings')}><Settings size={18}/><span>{local?'设置与发布':'关于与更新'}</span></button><div className="mode"><span className={`status-dot ${local?'local':''}`}/>{local?'电脑管理版':'公开阅读版'}<small>{local?'本地保存':'自由阅读'}</small></div></div>
+ </aside>
+ {mobileMenu&&<div className="sidebar-scrim" aria-hidden="true" onClick={()=>closeNavigation()}/>}
+ <div className="main-shell" inert={mobileMenu}><header className="topbar"><button ref={menuToggle} className="icon-button mobile-menu" aria-label="打开导航" aria-expanded={mobileMenu} aria-controls="site-navigation" onClick={()=>setMobileMenu(true)}><Menu size={21}/></button><div className="breadcrumb">我的空间 <span>/</span> {menu.find(m=>m[0]===active)?.[1]||secondaryMenu.find(m=>m[0]===active)?.[1]||'内容详情'}</div><label className="search-box"><Search size={17}/><input id="global-search" value={search} onChange={e=>{setSearch(e.target.value);setLimit(24);}} placeholder="搜题号、知识点、教材或笔记" aria-label="全站搜索"/>{search?<button className="icon-button" onClick={()=>setSearch('')} aria-label="清除搜索"><X size={14}/></button>:<kbd>Ctrl K</kbd>}</label>{local&&<button className="button dark quick-add" onClick={()=>create()}><Plus size={16}/><span>随手记</span></button>}<span className="avatar">生</span></header>
  <main id="main-content" className={`content ${page==='record'?'detail-content':''}`} tabIndex={-1}>
  {search.trim()?<><PageHead eyebrow="FIND YOUR CONNECTIONS" title="找到，连起来。" description={`在 ${catalog.records.length} 条内容中搜索「${search}」`}/>{searchError&&<p className="error-message">{searchError}</p>}{!searchReady&&<p className="inline-status"><LoaderCircle className="spin" size={16}/>先显示标题与题目匹配，正在补充全文结果…</p>}{list(catalog.records.filter(r=>(searchIds||localSearchIds).includes(r.id)),'没有找到相关内容')}</>:
  page==='writing'?<Suspense fallback={<p role="status">正在打开写作实战…</p>}><WritingPractice navigate={go} params={params}/></Suspense>:page==='vocabulary'?<Suspense fallback={<p role="status">正在打开词语训练…</p>}><VocabularyPractice navigate={go} params={params}/></Suspense>:page==='shenlun'?<Suspense fallback={<p role="status">正在打开申论素材库…</p>}><ShenlunDesk catalog={catalog} params={params} navigate={go} onOpen={openRecord} onSync={local?async()=>{await api.post('sync-shenlun');await refresh();}:undefined}/></Suspense>:page==='xingce'?<Suspense fallback={<p role="status">正在打开行测训练…</p>}><XingceDesk catalog={catalog} params={params} onNavigate={go} onOpen={openRecord}/></Suspense>:page==='speed-math'?<Suspense fallback={<p role="status">正在打开速算训练…</p>}><SpeedMath/></Suspense>:page==='guided-review'?<GuidedReview catalog={catalog} params={params} navigate={go}/>:page==='drill'||page==='wrong'?<DrillPage key={current.path+'?'+params.toString()} catalog={catalog} params={page==='wrong'?new URLSearchParams({...Object.fromEntries(params),mode:'wrong'}):params} onNavigate={go} refresh={refresh}/>:page==='bank'?<QuestionBank catalog={catalog} bank={id} params={params} onNavigate={go} onOpen={openRecord}/>:page==='today'?<LearningDesk catalog={catalog} navigate={go} onOpen={openRecord}/>:page==='library'?<LibraryDesk key={params.toString()} catalog={catalog} params={params} navigate={go} onOpen={openRecord} local={local}/>:
@@ -71,7 +104,7 @@ export default function App(){
  page==='upload'?<UploadPage refresh={refresh} notify={notify}/>:
  page==='settings'?<SettingsPage catalog={catalog} refresh={refresh} notify={notify}/>:<Empty title="这个页面不存在" text="请从左侧导航重新进入。"/>}
  </main></div>
- <nav className="mobile-nav">{menu.filter(([key])=>['today','drill','wrong','guided-review','library'].includes(key)).map(([key,label,,Icon])=><button key={key} className={active===key?'active':''} onClick={()=>{setSearch('');go(key);}}><Icon size={20}/><span>{({today:'工作台',drill:'刷题',wrong:'错题','guided-review':'带我复盘',library:'资料'} as Record<string,string>)[key]}</span></button>)}</nav>
+ <nav className="mobile-nav" aria-label="手机常用入口" inert={mobileMenu}>{menu.filter(([key])=>['today','drill','wrong','guided-review','library'].includes(key)).map(([key,label,,Icon])=><button key={key} className={active===key?'active':''} aria-current={active===key?'page':undefined} onClick={()=>openPage(key)}><Icon size={20}/><span>{({today:'工作台',drill:'刷题',wrong:'错题','guided-review':'带我复盘',library:'资料'} as Record<string,string>)[key]}</span></button>)}</nav>
  {editor&&<Editor key={editor.id||'new'} initial={editor} catalog={catalog} onClose={()=>setEditor(null)} onSaved={saved}/>}{toast&&<div className="toast" role="status"><CheckCircle2 size={18}/>{toast}</div>}
  </div></CatalogContext.Provider></DrillProvider>;
 }

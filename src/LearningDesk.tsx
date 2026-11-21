@@ -1,4 +1,4 @@
-import {ArrowRight,ArrowUpRight,BookOpen,Calculator,Check,Compass,FileText,Layers,Leaf,PenLine,RefreshCw,Shuffle,Sparkles,Target} from 'lucide-react';
+import {ArrowRight,ArrowUpRight,BookOpen,Calculator,Compass,FileText,Layers,Leaf,PenLine,RefreshCw,Shuffle,Target} from 'lucide-react';
 import type {Catalog,RecordItem} from './types';
 import {today} from './types';
 import {useDrill} from './DrillProgress';
@@ -7,6 +7,10 @@ import {isWrongRecord} from './drill-state.mjs';
 type Navigate=(path:string,params?:Record<string,string>)=>void;
 export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate:Navigate;onOpen:(r:RecordItem)=>void}){
  const {progress}=useDrill();
+ let recentId:string|null=null;
+ try{recentId=localStorage.getItem('growth-last-read');}catch{/* The desk still works without recent-reading storage. */}
+ const recent=recentId?catalog.records.find(record=>record.id===recentId):undefined;
+ const date=today();
  const questions=catalog.records.filter(r=>r.studyQuestion),wrongs=questions.filter(r=>isWrongRecord(r,progress)&&!progress.items[r.id]?.mastered);
  const due=catalog.records.filter(r=>r.nextReview&&r.nextReview<=today()&&['memory','knowledge','review','common'].includes(r.kind));
  const practiced=Object.values(progress.items).filter(r=>r.attempts>0).length;
@@ -18,9 +22,13 @@ export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate
   {title:'查找资料',hint:'找教材原页、讲解和笔记',detail:'三份教材 · 原文随时核对',Icon:BookOpen,path:'library',params:{},tone:'library'}
  ];
  return <div className="learning-desk">
-  <header className="desk-heading"><div><span className="section-kicker"><span/>学习工作台</span><h1>今天，学清楚一点。</h1><p>从一个问题开始，让每次练习都有收获。</p></div><div className="desk-date"><span>{today().replaceAll('-',' / ')}</span><strong>{new Intl.DateTimeFormat('zh-CN',{weekday:'long',timeZone:'Asia/Shanghai'}).format(new Date())}</strong></div></header>
-  <section className="desk-subjects" aria-label="按学科学习"><button onClick={()=>navigate('xingce')}><span className="desk-subject-number">01</span><div><h2>行测训练</h2><p>资料分析 · 图形 · 言语 · 常识 · 政治</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('shenlun')}><span className="desk-subject-number">02</span><div><h2>申论积累</h2><p>最新精读 · 金句背诵 · 词语用法训练</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('drill',{subject:'gongan'})}><span className="desk-subject-number">03</span><div><h2>公安刷题</h2><p>原题与教材 · 逐项解析 · 薄弱点复盘</p></div><ArrowUpRight size={20}/></button></section>
-  <section className="desk-actions" aria-label="学习快捷入口">{actions.map(({title,hint,detail,Icon,path,params,tone},i)=><button className={`desk-action ${tone}`} key={path} onClick={()=>navigate(path,params)}><span className="desk-action-top"><span className="action-icon"><Icon size={23}/></span><small>0{i+1}</small></span><h2>{title}<ArrowUpRight size={20}/></h2><p>{hint}</p><span className="desk-action-detail">{detail}</span></button>)}</section>
+  <header className="desk-heading"><div><h1>学习工作台</h1><p>练题、读原文，把今天没弄懂的留给复盘。</p></div><time className="desk-date" dateTime={date}><span>{date.replaceAll('-',' / ')}</span><strong>{new Intl.DateTimeFormat('zh-CN',{weekday:'long',timeZone:'Asia/Shanghai'}).format(new Date())}</strong></time></header>
+  <section className="desk-resume" aria-labelledby="desk-resume-title">
+   <div className="desk-resume-copy"><span className="desk-resume-label">继续学习</span><h2 id="desk-resume-title">{recent?recent.title:'从上次的练习接着来'}</h2><p>{recent?'最近阅读 · 回到上次打开的学习记录':'打开刷题库，可继续上一轮，也可按科目开始新一轮。'}</p></div>
+   <button className="button primary" onClick={()=>recent?onOpen(recent):navigate('drill')}>{recent?'继续阅读':'打开刷题库'} <ArrowRight size={17}/></button>
+  </section>
+  <section className="desk-subjects" aria-label="按学科学习"><button onClick={()=>navigate('xingce')}><Target className="desk-subject-icon" size={24}/><div><h2>行测训练</h2><p>资料分析 · 图形 · 言语 · 常识 · 政治</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('shenlun')}><PenLine className="desk-subject-icon" size={24}/><div><h2>申论积累</h2><p>最新精读 · 金句背诵 · 词语用法训练</p></div><ArrowUpRight size={20}/></button><button onClick={()=>navigate('drill',{subject:'gongan'})}><BookOpen className="desk-subject-icon" size={24}/><div><h2>公安刷题</h2><p>原题与教材 · 逐项解析 · 薄弱点复盘</p></div><ArrowUpRight size={20}/></button></section>
+  <section className="desk-actions" aria-label="学习快捷入口">{actions.map(({title,hint,detail,Icon,path,params,tone})=><button className={`desk-action ${tone}`} key={path} onClick={()=>navigate(path,params)}><span className="desk-action-top"><span className="action-icon"><Icon size={23}/></span></span><h2>{title}<ArrowUpRight size={20}/></h2><p>{hint}</p><span className="desk-action-detail">{detail}</span></button>)}</section>
   <section className="desk-speed-entry"><span className="speed-icon"><Calculator size={24}/></span><div><h2>速算训练</h2><p>把公式练顺手 · 随机混练、逐步讲解、错题重练</p></div><button className="button outline" onClick={()=>navigate('speed-math')}>练一轮速算 <ArrowRight size={16}/></button></section>
   <section className="desk-speed-entry desk-writing-entry"><span className="speed-icon"><PenLine size={24}/></span><div><h2>申论与写作实战</h2><p>国考、川渝省考及岗位写作 · 读材料，写格纸，再复盘</p></div><button className="button outline" onClick={()=>navigate('writing')}>开始写一份 <ArrowRight size={16}/></button></section>
   <div className="desk-lower"><section className="desk-route"><div className="desk-section-head"><div><span className="section-kicker">不必一次做很多</span><h2>留半小时，完成一小步。</h2></div><Compass size={26} strokeWidth={1.4}/></div><p>做错不是终点。看清差在哪，再用自己的话说一遍。</p><ol className="study-route"><li><span>1</span><div><strong>先做一道</strong><small>看原题，独立选择</small></div></li><li><span>2</span><div><strong>弄清为什么</strong><small>比选项，找条件和依据</small></div></li><li><span>3</span><div><strong>留下提醒</strong><small>记住下次要警觉的词</small></div></li></ol><button className="button primary" onClick={()=>navigate('guided-review')}>开始今日30分钟复盘 <ArrowRight size={17}/></button></section>

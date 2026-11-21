@@ -22,3 +22,32 @@ button,a{-webkit-tap-highlight-color:transparent}button{touch-action:manipulatio
 @media(max-width:768px){.desk-speed-entry{padding:17px;gap:12px;flex-wrap:wrap}.desk-speed-entry h2{font-size:21px}.desk-speed-entry p{font-size:11px}.desk-speed-entry>button{margin-left:60px;min-height:39px}.desk-speed-entry>.speed-icon{width:46px;height:46px}}
 .page-recovery{max-width:620px;margin:12vh auto;padding:32px}.page-recovery p{margin:20px 0;line-height:1.9}.page-recovery button{margin:8px 12px 8px 0}
 .desk-writing-entry{background:#f1e9dc!important;border-color:#dfcdb9!important}.desk-writing-entry .speed-icon{background:#e8d9c7!important;color:#8f6248!important}
+
+.sidebar-header{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.sidebar-close{display:none}
+.sidebar-label{color:#52695d}
+.sidebar .nav-item:focus-visible,.mobile-menu:focus-visible,.sidebar-close:focus-visible,.mobile-nav button:focus-visible,.desk-resume button:focus-visible{outline:2px solid #34634d;outline-offset:2px}
+.mobile-nav button[aria-current=page]{font-weight:700}
+.desk-resume{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:24px;padding:23px 26px;border:1px solid #d4ded3;border-left:4px solid #578069;border-radius:10px;background:#eef3ea}
+.desk-resume-copy{min-width:0}
+.desk-resume-label{font-size:12px;font-weight:700;color:#38624d}
+.desk-resume h2{margin:5px 0 4px;font-family:var(--serif);font-size:clamp(19px,2vw,25px);line-height:1.35;overflow-wrap:anywhere}
+.desk-resume p{margin:0;color:#4b6657;font-size:13px}
+.desk-resume .button{flex-shrink:0;min-height:44px}
+.desk-subjects .desk-subject-icon{flex-shrink:0;color:#446d56}
+@media(max-width:768px){
+ body:has(.sidebar.open){overflow:hidden}
+ .sidebar .brand{margin-bottom:23px}
+ .sidebar-close{display:inline-flex;flex-shrink:0;width:44px;height:44px}
+ .mobile-menu{min-width:44px;min-height:44px}
+ .sidebar .nav-item{min-height:44px}
+ .desk-resume{display:grid;gap:13px;margin-bottom:20px;padding:16px}
+ .desk-resume .button{justify-self:start}
+}
+
+.sidebar .brand small{color:#52695d}
+.learning-desk :is(.desk-heading p,.desk-date span,.desk-subjects p,.desk-speed-entry p,.desk-route>p,.desk-today>p,.study-route small,.desk-counts span,.desk-section-head .section-kicker,.desk-today .section-kicker,.desk-section-head>.text-link,.desk-book>div:nth-child(2)>small,.desk-space-grid p){color:#465d50}
+.learning-desk .desk-action:not(.practice) :is(p,.desk-action-detail){color:#465d50}
+.learning-desk .desk-book-cover{background:#41614b}
+.learning-desk .desk-book-cover.book-1{background:#76503c}
+.learning-desk .desk-book-cover.book-2{background:#405a6d}
