@@ -41,3 +41,7 @@ export function mergeProgress(base, overlay) {
 }
 export function isPending(record, progress) { return !!record.studyQuestion?.wrongCandidate && !progress.items?.[record.id]?.isWrong && !progress.items?.[record.id]?.dismissed; }
 export function isWrongRecord(record, progress) { return record.kind === 'error' || !!record.studyQuestion?.historicalWrong || !!progress.items?.[record.id]?.isWrong; }
+export function isActiveWrongRecord(record, progress) {
+  const item=progress.items?.[record.id];
+  return isWrongRecord(record,progress) && !item?.mastered && item?.lastCorrect!==true;
+}

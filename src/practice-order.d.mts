@@ -3,7 +3,9 @@ export type PracticeSession={schemaVersion:2;ids:string[];index:number;round:str
 export function knowledgeKey(row:any):string;
 export function caseGroupKey(row:any):string;
 export function expandPracticeGroups<T>(rows:T[],allRows:T[]):T[];
-export function eligiblePracticeRows<T>(rows:T[]):T[];
+export function isUploadedPracticeBank(bank:unknown):boolean;
+export function eligiblePracticeRows<T>(rows:T[],options?:{includeUnscoredBank?:string}):T[];
+export function restrictPracticeSession(session:PracticeSession|null,eligibleIds:Iterable<string>):PracticeSession|null;
 export function matchesPracticeQuery(row:any,query:string):boolean;
 export function matchesPracticeType(row:any,type:string):boolean;
 export function practiceNavigationParams(filters:Record<string,string>,changes?:Record<string,string>):Record<string,string>;

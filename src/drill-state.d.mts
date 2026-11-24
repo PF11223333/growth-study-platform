@@ -7,3 +7,4 @@ export function applyEvent(progress:DrillProgress,event:any):DrillProgress;
 export function mergeProgress(base:DrillProgress,overlay:DrillProgress):DrillProgress;
 export function isPending(record:any,progress:DrillProgress):boolean;
 export function isWrongRecord(record:any,progress:DrillProgress):boolean;
+export function isActiveWrongRecord(record:any,progress:DrillProgress):boolean;

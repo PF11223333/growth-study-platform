@@ -2,7 +2,7 @@ import {ArrowRight,ArrowUpRight,BookOpen,Calculator,Compass,FileText,Layers,Leaf
 import type {Catalog,RecordItem} from './types';
 import {today} from './types';
 import {useDrill} from './DrillProgress';
-import {isWrongRecord} from './drill-state.mjs';
+import {isActiveWrongRecord} from './drill-state.mjs';
 
 type Navigate=(path:string,params?:Record<string,string>)=>void;
 export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate:Navigate;onOpen:(r:RecordItem)=>void}){
@@ -11,7 +11,7 @@ export function LearningDesk({catalog,navigate,onOpen}:{catalog:Catalog;navigate
  try{recentId=localStorage.getItem('growth-last-read');}catch{/* The desk still works without recent-reading storage. */}
  const recent=recentId?catalog.records.find(record=>record.id===recentId):undefined;
  const date=today();
- const questions=catalog.records.filter(r=>r.studyQuestion),wrongs=questions.filter(r=>isWrongRecord(r,progress)&&!progress.items[r.id]?.mastered);
+ const questions=catalog.records.filter(r=>r.studyQuestion),wrongs=questions.filter(r=>isActiveWrongRecord(r,progress));
  const due=catalog.records.filter(r=>r.nextReview&&r.nextReview<=today()&&['memory','knowledge','review','common'].includes(r.kind));
  const practiced=Object.values(progress.items).filter(r=>r.attempts>0).length;
  const mainBooks=['source-e54c6989c8057386a3fe80e9','source-9657660fd40d4a780c48fe10','source-27c9642d30115cd64d7902bc'].map(id=>catalog.sources.find(s=>s.id===id)).filter(Boolean);

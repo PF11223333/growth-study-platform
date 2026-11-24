@@ -8,9 +8,27 @@ function groups(rows){
  return result;
 }
 export function expandPracticeGroups(rows,allRows){const ids=new Set(rows.map(r=>r.id)),keys=new Set(rows.map(caseGroupKey).filter(Boolean));return allRows.filter(r=>ids.has(r.id)||keys.has(caseGroupKey(r)));}
-export function eligiblePracticeRows(rows){const excludedGroups=new Set(rows.filter(r=>r.studyQuestion?.gradingExcluded).map(caseGroupKey).filter(Boolean));return rows.filter(r=>r.studyQuestion&&!r.studyQuestion.gradingExcluded&&!excludedGroups.has(caseGroupKey(r)));}
+export function isUploadedPracticeBank(bank){return typeof bank==='string'&&bank.startsWith('police-upload-');}
+export function eligiblePracticeRows(rows,{includeUnscoredBank=''}={}){
+ const excludedGroups=new Set(rows.filter(r=>r.studyQuestion?.gradingExcluded).map(caseGroupKey).filter(Boolean));
+ return rows.filter(r=>{
+  const q=r.studyQuestion;
+  if(!q||q.groupOnly)return false;
+  if(isUploadedPracticeBank(includeUnscoredBank)&&q.bank===includeUnscoredBank)return true;
+  return !q.gradingExcluded&&!excludedGroups.has(caseGroupKey(r));
+ });
+}
+export function restrictPracticeSession(session,eligibleIds){
+ if(!session)return session;
+ const eligible=new Set(eligibleIds);
+ const ids=session.ids.filter((id,index)=>index<session.index||session.answers[id]||eligible.has(id));
+ return ids.length===session.ids.length?session:restorePracticeSession(session,ids);
+}
 export function buildPracticeQueue(rows,{policy='random',progress={items:{}},startId='',afterId='',previousId='',today='',random=Math.random,limit=0}={}){
- let units=groups(rows);if(!units.length)return [];
+ const sameUploadedBank=isUploadedPracticeBank(rows[0]?.studyQuestion?.bank)&&rows.every(r=>r.studyQuestion?.bank===rows[0].studyQuestion.bank);
+ const sourceOrder=row=>Number(row.studyQuestion?.originalNumber??row.studyQuestion?.number)||0;
+ const sequence=policy==='ordered'&&sameUploadedBank?[...rows].sort((a,b)=>sourceOrder(a)-sourceOrder(b)):rows;
+ let units=groups(sequence);if(!units.length)return [];
  let anchor=units.find(group=>group.rows.some(r=>r.id===startId));
  if(afterId){const previous=units.find(group=>group.rows.some(r=>r.id===afterId));if(previous){const at=previous.rows.findIndex(r=>r.id===afterId);previous.rows=previous.rows.slice(at+1);if(previous.rows.length)anchor=previous;else{const originalIndex=units.indexOf(previous);if(policy==='ordered'){anchor=units[originalIndex+1];if(!anchor)return [];}units=units.filter(group=>group!==previous);}}}
  const priority=row=>{const s=progress.items?.[row.id];return s?.nextReview&&s.nextReview<=today?0:s?.isWrong&&!s.mastered||row.studyQuestion?.historicalWrong&&!s?.mastered?1:!s?.attempts?2:s.mastered?4:3;};

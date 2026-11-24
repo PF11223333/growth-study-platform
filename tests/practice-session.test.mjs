@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {buildPracticeQueue,expandPracticeGroups,eligiblePracticeRows,matchesPracticeQuery,matchesPracticeType,practiceSessionKey,practiceResumeTarget,practiceNavigationParams,practiceAttemptId,restorePracticeSession,reconcilePracticeSession,recordPracticeResult,advancePracticeSession} from '../src/practice-order.mjs';
-import {applyEvent,emptyProgress} from '../src/drill-state.mjs';
+import {buildPracticeQueue,expandPracticeGroups,eligiblePracticeRows,restrictPracticeSession,matchesPracticeQuery,matchesPracticeType,practiceSessionKey,practiceResumeTarget,practiceNavigationParams,practiceAttemptId,restorePracticeSession,reconcilePracticeSession,recordPracticeResult,advancePracticeSession} from '../src/practice-order.mjs';
+import {applyEvent,emptyProgress,isActiveWrongRecord,isWrongRecord} from '../src/drill-state.mjs';
 
 const row=(id,number,group='')=>({id,subject:'gongan',title:`2024国考 第${number}题`,studyQuestion:{bank:'lower',number,type:'single',chapterName:'2024国考',promptPreview:'某派出所依法调查',...(group?{caseGroupId:group,caseGroupOrder:number,caseIndex:number-90,caseCount:3}:{})}});
 const rows=[row('one',1),row('last',100),row('case93',93,'scene'),row('case91',91,'scene'),row('case92',92,'scene'),row('two',2)];
@@ -75,4 +75,33 @@ test('首页准备页可继续最近章节轮，显式筛选则只恢复自己�
  assert.equal(practiceResumeTarget({...filters,mode:'wrong'},null,recent),null);
  assert.equal(practiceResumeTarget(filters,null,{...recent,session:{...recent.session,index:2}}),null);
  const matching=practiceResumeTarget({...filters,chapter:'3'},session(),recent);assert.equal(matching.filters.chapter,'3');assert.equal(matching.session.index,0);
+});
+
+test('已答对的历史错题退出待巩固，答错后重新进入，历史始终保留',()=>{
+ const r={...row('one',1),studyQuestion:{...row('one',1).studyQuestion,historicalWrong:true}};
+ const correct=applyEvent(emptyProgress(),{id:r.id,eventId:'correct',correct:true,answer:'A'});
+ assert.equal(isWrongRecord(r,correct),true);
+ assert.equal(isActiveWrongRecord(r,correct),false);
+ const wrong=applyEvent(correct,{id:r.id,eventId:'wrong',correct:false,answer:'B'});
+ assert.equal(isActiveWrongRecord(r,wrong),true);
+ assert.equal(isActiveWrongRecord(r,emptyProgress()),true);
+});
+
+test('恢复旧错题轮时只剔除未答的已纠正题，保留本轮答案',()=>{
+ const old={...session(),ids:['one','two','three','four'],index:1,answers:{one:{answer:'B',correct:false},two:{answer:'A',correct:true}}};
+ const current=restrictPracticeSession(old,['four']);
+ assert.deepEqual(current.ids,['one','two','four']);
+ assert.equal(current.index,1);
+ assert.deepEqual(current.answers,old.answers);
+ assert.equal(restrictPracticeSession(session(),[]),null);
+});
+
+test('指定上传卷可练有答案和不计分题，顺序按原册题号',()=>{
+ const bank='police-upload-2026-national';
+ const uploaded=[row('ten',10),row('two',2),row('one',1)].map(r=>({...r,studyQuestion:{...r.studyQuestion,bank,gradingExcluded:r.id!=='one'}}));
+ assert.deepEqual(eligiblePracticeRows(uploaded).map(r=>r.id),['one']);
+ const eligible=eligiblePracticeRows(uploaded,{includeUnscoredBank:bank});
+ assert.deepEqual(buildPracticeQueue(eligible,{policy:'ordered'}),['one','two','ten']);
+ assert.deepEqual(buildPracticeQueue(eligible,{policy:'ordered',startId:'two'}),['two','ten']);
+ assert.equal(new Set(buildPracticeQueue(eligible,{policy:'random',random:()=>0.25})).size,3);
 });
